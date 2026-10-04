@@ -1,0 +1,432 @@
+% Based on the user-supplied laboratory-report header and layout.
+% Figures and data are embedded by build_report.py; the generated final .tex is standalone.
+\documentclass[UTF8,11pt,a4paper,fontset=fandol]{ctexart}
+\usepackage[left=2cm,right=2cm,top=2.4cm,bottom=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array,graphicx,xcolor}
+\usepackage{tikz,pgfplots}
+\usetikzlibrary{arrows.meta,positioning}
+\pgfplotsset{compat=1.18}
+\usepackage{float,caption,fancyhdr,listings,enumitem,hyperref,needspace}
+\hypersetup{hidelinks,pdftitle={实验一：多层感知机},pdfauthor={史峰源}}
+\definecolor{PBlue}{HTML}{3368A5}
+\definecolor{PGold}{HTML}{B77D25}
+\definecolor{POrange}{HTML}{C46C43}
+\definecolor{POlive}{HTML}{698440}
+\definecolor{PPink}{HTML}{A55D82}
+\definecolor{PGray}{HTML}{677280}
+\captionsetup{font=small,labelfont=bf,labelsep=quad,skip=10pt}
+\setlist{leftmargin=2em,itemsep=6pt,parsep=2pt,topsep=8pt}
+\setlength{\parskip}{5pt}
+\setlength{\headheight}{15pt}
+\setlength{\intextsep}{18pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{20pt plus 2pt minus 2pt}
+\renewcommand{\arraystretch}{1.35}
+\linespread{1.22}
+\setlength{\emergencystretch}{2em}
+\ctexset{section={beforeskip=22pt,afterskip=14pt},
+  subsection={beforeskip=18pt,afterskip=10pt}}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small 深度学习实验}
+\fancyhead[R]{\small 实验一：多层感知机}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\lstset{language=Python,basicstyle=\ttfamily\fontsize{9.5}{12.8}\selectfont,
+  keywordstyle=\color{PBlue},commentstyle=\color{PGray},
+  backgroundcolor=\color{black!3},frame=single,rulecolor=\color{black!15},
+  breaklines=true,columns=fullflexible,showstringspaces=false,tabsize=4,
+  framesep=6pt,xleftmargin=7pt,xrightmargin=7pt,
+  aboveskip=10pt,belowskip=10pt}
+\pgfplotsset{reportaxis/.style={
+  width=7.75cm,height=5.2cm,axis line style={black!35},tick style={black!35},
+  grid=major,grid style={black!10},tick label style={font=\scriptsize},
+  label style={font=\small},title style={font=\small\bfseries},
+  legend style={font=\scriptsize,draw=none,fill=none,at={(0.5,-0.28)},anchor=north},
+  legend columns=2,scaled ticks=false,
+  /pgf/number format/1000 sep={}}}
+\newcommand{\reportname}{实验一：多层感知机}
+\newcommand{\studentname}{史峰源}
+\newcommand{\studentnumber}{2412526}
+\newcommand{\studentmajor}{智能科学与技术}
+\newcommand{\teachername}{李欢}
+\newcommand{\err}{\operatorname{err}}
+
+\newcommand{\question}[1]{\Needspace{14\baselineskip}\subsection{#1}}
+\raggedbottom
+\begin{document}
+\thispagestyle{empty}
+\begin{center}
+  {\LARGE\bfseries 深\,度\,学\,习\,实\,验\,报\,告}\par\vspace{0.6em}
+  专业\underline{\makebox[9em]{\studentmajor}}\quad
+  姓名\underline{\makebox[5em]{\studentname}}\quad
+  学号\underline{\makebox[6em]{\studentnumber}}\par\vspace{0.35em}
+  课程：深度学习实验\qquad 指导教师：\teachername\qquad 报告日期：2026年10月4日\par
+  \vspace{0.2em}\rule{\textwidth}{1.2pt}\par\vspace{0.5em}
+  {\Large\bfseries\reportname}\par
+  {\normalsize Fashion-MNIST 分类、泛化分析与 XOR 非线性分类}
+  \par\vspace{0.5em}
+  {\small 代码与实验结果：\url{https://github.com/summerwind0131/nku_deep_learning}}
+\end{center}
+
+\section{实验目的与准备}
+本实验以 Fashion-MNIST 分类为任务，实现至少含两个隐藏层的多层感知机（MLP）。首先完成训练曲线、参数量、网络结构、激活函数和损失函数五项基本实验，再研究模型复杂度、过拟合、L2、Dropout、Batch Normalization，并使用神经网络解决 XOR 问题。
+
+Fashion-MNIST 图像大小为 $28\times28$，共有 10 类。使用 \texttt{ToTensor()} 将像素缩放至 $[0,1]$，进入网络时展平为 784 维向量，不使用额外的数据增强。将官方 60,000 张训练图像按类别分层划分为 50,000 张训练图像和 10,000 张验证图像；官方 10,000 张测试图像保持独立。划分种子固定为 42，各组共用同一划分。
+
+\begin{table}[H]\centering\small
+\caption{Fashion-MNIST 实验的共同设置}
+\begin{tabular}{llll}\toprule
+设置项 & 取值 & 设置项 & 取值 \\\midrule
+优化器 & Adam & 学习率 & $10^{-3}$ \\
+批量大小 & 64 & 训练随机种子 & 42 \\
+基础对比轮数 & 20 & 大模型对比轮数 & 60 \\
+基线隐藏层 & 256--128 & 基线激活 / 损失 & ReLU / 交叉熵 \\
+优化器 weight decay & 0 & 学习率调度 & 无 \\
+\bottomrule\end{tabular}
+\end{table}
+实验使用 RTX Laptop GPU，Python @@PYTHON@@、PyTorch @@TORCH@@。每轮保存模型并计算验证误差，以验证误差最低的轮次保存 \texttt{best.pth}；测试曲线由训练结束后逐轮评估已保存模型得到。下文“最佳轮”均指验证误差最低的轮次，“最佳轮测试误差”为该轮模型在测试集上的误差。
+
+\clearpage
+\section{基本实验要求}
+\question{要求1：绘制训练损失、训练误差和测试误差曲线}
+\textbf{实现方法。}基线网络结构为 $784\to256\to128\to10$，两个隐藏层使用 ReLU，输出层给出 10 类的 logits。交叉熵直接接收 logits，在内部完成与 Softmax 对应的计算，因此不在模型输出处另加 Softmax。关键训练步骤如下：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+model = MLP(input_dim=784, hidden_dims=[256, 128],
+            output_dim=10, activation="relu")
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001,
+                             weight_decay=0.0)
+
+model.train()
+for images, labels in train_loader:
+    optimizer.zero_grad()
+    logits = model(images)
+    loss = criterion(logits, labels)
+    loss.backward()
+    optimizer.step()
+\end{lstlisting}
+\end{minipage}\par
+每轮训练损失按各批次样本数加权平均，分类误差则在该轮结束后，切换至 \texttt{model.eval()} 并关闭梯度，遍历数据集计算：
+\begin{equation}
+\overline{L}_{\rm train}=\frac{\sum_b n_b L_b}{\sum_b n_b},\qquad
+\err=\frac{1}{N}\sum_{i=1}^{N}\mathbb{I}\!\left[\arg\max_k z_{ik}\ne y_i\right].
+\end{equation}
+这里 $L_b$ 是当前批次的平均损失，$n_b$ 是其样本数。训练损失反映一轮内不断更新的模型，训练误差和测试误差反映轮末模型。
+\begin{figure}[H]\centering
+@@BASELINE_TRIPLE@@
+\caption{基线网络的训练损失、训练误差和测试误差。横轴均为训练轮次。}\label{fig:baseline}
+\end{figure}
+\textbf{结果与分析。}图\ref{fig:baseline}中，训练损失从第 1 轮的 0.5504 降至第 20 轮的 0.1593，训练误差从 14.00\% 降至 5.98\%，测试误差从 15.15\% 降至 11.53\%。前期两种误差同时下降，说明模型学到了能够用于未见图像的特征；后期训练误差继续减小，测试误差下降趋缓并有波动，说明继续拟合训练数据未必带来同等幅度的泛化改善。验证集选出的最佳轮次为第 19 轮，其验证误差为 9.90\%，测试误差为 11.05\%。因此，仅凭训练损失仍在下降，不能判断继续训练一定能改善测试表现。
+
+\question{要求2：计算网络参数量，包括权重数和偏置数}
+\textbf{计算方法。}输入维数为 $d_{\rm in}$、输出维数为 $d_{\rm out}$ 的全连接层含 $d_{\rm in}d_{\rm out}$ 个权重和 $d_{\rm out}$ 个偏置。因此，基线网络的参数量为
+\begin{equation}
+P=(784+1)\times256+(256+1)\times128+(128+1)\times10=235,146.
+\end{equation}
+\begin{table}[H]\centering\small
+\caption{基线网络参数量的逐层计算}
+\begin{tabular}{lrrr}\toprule
+全连接层 & 权重数 & 偏置数 & 合计 \\\midrule
+$784\to256$ & 200,704 & 256 & 200,960 \\
+$256\to128$ & 32,768 & 128 & 32,896 \\
+$128\to10$ & 1,280 & 10 & 1,290 \\\midrule
+总计 & 234,752 & 394 & 235,146 \\
+\bottomrule\end{tabular}
+\end{table}
+\Needspace{4\baselineskip}
+通过代码对模型参数进行核对：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+num_params = sum(p.numel() for p in model.parameters())
+\end{lstlisting}
+\end{minipage}\par
+\textbf{结果与分析。}程序统计与手算一致。Flatten 和 ReLU 没有可学习参数；第一层全连接占基线参数量约 85.5\%，因此调整第一隐藏层宽度对总参数量影响尤其明显。
+
+\question{要求3：改变隐藏层层数或神经元数，比较曲线与参数量}
+\textbf{实验设计与核心代码。}固定 ReLU、交叉熵及表 1 的训练设置，比较 64--32、256--128、512--256 三种两隐藏层结构，并加入 256--128--64 三隐藏层结构。每组均训练 20 轮。网络根据隐藏层维度列表逐层构造：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+layers = [nn.Flatten(start_dim=1)]
+previous_dim = input_dim
+for hidden_dim in hidden_dims:
+    layers.append(nn.Linear(previous_dim, hidden_dim))
+    layers.append(activation_class())
+    previous_dim = hidden_dim
+layers.append(nn.Linear(previous_dim, output_dim))
+self.network = nn.Sequential(*layers)
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+@@STRUCTURE_TRIPLE@@
+\caption{不同隐藏层结构下的三类训练曲线，训练预算均为 20 轮。}\label{fig:structure}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{结构对比：参数量与验证集选中轮次的结果}
+\begin{tabular}{lrrrr}\toprule
+隐藏层结构 & 参数量 & 最佳轮 & 验证误差 & 对应测试误差 \\\midrule
+@@BASIC_STRUCTURE_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}在两隐藏层网络中，增大宽度带来了更强的拟合能力。第 20 轮时，64--32、256--128、512--256 的训练误差分别为 8.31\%、5.98\% 和 5.06\%，测试误差分别为 12.85\%、11.53\% 和 10.73\%。结合曲线可以看到，窄网络的训练损失下降后停留在较高水平，宽网络在本次运行中同时改善了训练和测试表现。
+
+增加一个 64 维隐藏层后，参数量从 235,146 增至 242,762。其最佳验证误差为 9.76\%，略低于基线，但对应测试误差 11.36\% 略高于基线的 11.05\%。这说明增加深度并没有在本实验中带来一致改善。深度增加改变了特征变换方式，也增加了优化难度；它与简单增加宽度的效果不能等同。这里同时改变了结构和参数量，不能把差异全部归因于“层数”这一个因素。
+
+\question{要求4：尝试不同激活函数，观察三类曲线}
+\textbf{实验设计与核心代码。}保持隐藏层为 256--128，分别在两个隐藏层使用 ReLU、Tanh 和 Sigmoid，其他设置完全相同。三组参数量均为 235,146。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+activation_classes = {
+    "relu": nn.ReLU,
+    "tanh": nn.Tanh,
+    "sigmoid": nn.Sigmoid,
+}
+activation_class = activation_classes[activation]
+layers.append(activation_class())
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+@@ACTIVATION_TRIPLE@@
+\caption{不同激活函数下的训练损失、训练误差和测试误差。}\label{fig:activation}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{激活函数对比：验证集选中轮次的结果}
+\begin{tabular}{lrrr}\toprule
+激活函数 & 最佳轮 & 验证误差 & 对应测试误差 \\\midrule
+@@ACTIVATION_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}第一轮训练损失分别为 ReLU 0.5504、Tanh 0.5159、Sigmoid 0.7380，Sigmoid 的前期学习较慢。Sigmoid 的导数最大为 $1/4$，且在输入绝对值较大时接近零；Tanh 也有饱和区，而 ReLU 在正区间保持导数为 1。这些性质可以解释激活函数可能对梯度传播产生的影响，但本实验未记录逐层梯度，不能仅凭曲线确认具体的梯度消失程度。
+
+经过 20 轮训练，三种激活均可获得较好的分类结果，最佳验证误差的最大差距只有 0.14 个百分点。ReLU 在本次实验的最佳模型测试误差最低，但优势较小；对于当前两隐藏层网络，激活函数改变主要影响早期学习速度，最终分类误差并未拉开很大差距。
+
+\question{要求5：尝试不同损失函数，观察三类曲线}
+\textbf{实验设计与核心代码。}固定 256--128、ReLU，对比交叉熵和均方误差。对于 MSE，先将 logits 转换为类别概率，将标签转换为 one-hot 向量，再计算均方误差。若类别数 $K=10$，则两种目标为
+\begin{equation}
+L_{\rm CE}=-\frac{1}{N}\sum_i\log p_{i,y_i},\qquad
+L_{\rm MSE}=\frac{1}{NK}\sum_i\sum_k(p_{ik}-\mathbb{I}[y_i=k])^2.
+\end{equation}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+class ClassificationMSELoss(nn.Module):
+    def forward(self, logits, labels):
+        probabilities = F.softmax(logits, dim=1)
+        targets = F.one_hot(labels, num_classes=logits.shape[1])
+        targets = targets.to(dtype=logits.dtype)
+        return F.mse_loss(probabilities, targets)
+
+def build_loss(name):
+    if name == "cross_entropy":
+        return nn.CrossEntropyLoss()
+    if name == "mse":
+        return ClassificationMSELoss()
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+@@LOSS_FOUR_PANELS@@
+\caption{交叉熵与概率 MSE 的对比。上排分别展示训练损失，下排用相同误差尺度比较分类表现。}\label{fig:loss}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{损失函数对比：验证集选中轮次的结果}
+\begin{tabular}{lrrr}\toprule
+损失函数 & 最佳轮 & 验证误差 & 对应测试误差 \\\midrule
+@@LOSS_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}两种损失都能有效训练网络，最佳模型的测试误差均约为 11\%。MSE 的最佳验证误差略低，但其对应测试误差为 11.25\%，略高于交叉熵的 11.05\%。因此，本次结果没有显示 MSE 带来明确的分类优势。
+
+MSE 曲线的数值明显小于交叉熵，不能据此认定它训练得更好：两者定义和尺度不同，MSE 还对 10 个类别取了平均。交叉熵在真实类别概率接近零时惩罚很大，而概率 MSE 有界，两者对错误预测的梯度反馈也不同。公平判断应结合各自损失的下降趋势以及共同的分类误差指标。此处使用相同学习率，未分别为两种损失调优。
+
+\clearpage
+\section{附加题}
+\question{附加题1：模型复杂度与训练误差、测试误差的关系}
+在结构实验基础上，增加隐藏层为 1024--1024--512 的大模型。实现仍使用前述 \texttt{hidden\_dims} 循环，只需改变列表即可。为避免把训练轮数的影响误认为模型复杂度的影响，先将五种结构统一比较到第 20 轮：
+\begin{table}[H]\centering\small
+\caption{固定第 20 轮时，不同复杂度模型的分类误差}
+\begin{tabular}{lrrr}\toprule
+隐藏层结构 & 参数量 & 训练误差 & 测试误差 \\\midrule
+@@COMPLEXITY_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{分析。}从 64--32 增宽到 512--256 时，训练和测试误差同时下降，表明较小模型的表达能力限制了结果。但继续扩大到 2,383,370 个参数，在第 20 轮并没有超过 512--256 的测试表现；训练误差也未严格随参数量单调下降。参数量影响可表示的函数范围，实际训练结果还取决于优化路径、随机初始化和训练预算。
+
+大模型训练至 60 轮后，验证集选出的第 56 轮模型取得 9.94\% 的测试误差，说明该模型在更长训练下仍有改善空间。但这一结果同时改变了结构和训练轮数，不能作为“参数越多越好”的证据。模型复杂度应结合训练误差是否过高、训练与测试之间的差距及验证表现共同判断。
+
+\question{附加题2：观察过拟合；必要时增大模型使其明显}
+\textbf{实验方法。}采用 1024--1024--512、ReLU、交叉熵，不启用 L2、Dropout 或 BN，训练 60 轮。使用现有参数接口即可完成这一设置：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[language={}]
+python train.py --name night01_large_plain \
+  --hidden-dims 1024 1024 512 --epochs 60
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+@@OVERFIT_QUESTION@@
+\caption{大模型的过拟合现象：训练和验证损失，以及训练、验证、测试误差。}\label{fig:overfit}
+\end{figure}
+\textbf{结果与分析。}第 60 轮训练误差降至 1.72\%，测试误差仍为 10.65\%，两者相差约 8.93 个百分点。与此同时，验证交叉熵在第 8 轮达到约 0.293 后总体升高，到第 60 轮增至约 0.738，而训练损失继续下降至 0.0542。模型对训练数据的拟合越来越好，却没有在未参与训练的数据上获得相应收益，过拟合现象比小模型更明显。
+
+需要区分图中的两个现象：测试分类误差没有持续单调上升，后期部分轮次仍有改善；验证损失却明显恶化。分类误差只关注最大概率对应的类别是否正确，交叉熵还关注真实类别的概率。少量置信度很高的错误预测就可能显著增大交叉熵，而不会同比例增加错误样本数。因此，本组结果应表述为“训练与测试差距增大、验证损失恶化”，而不能笼统声称“越训练测试误差越高”。
+
+\question{附加题3：在目标函数中加入 L2 正则化，观察误差}
+\textbf{实验设计与核心代码。}在同一大模型上比较 $\lambda=0,10^{-4},10^{-3}$，每组均训练 60 轮。将全连接层权重的平方和加入目标：
+\begin{equation}
+J=L_{\rm data}+\frac{\lambda}{2}\sum_{\ell}\|W^{(\ell)}\|_F^2.
+\end{equation}
+该项向权重梯度中加入 $\lambda W^{(\ell)}$，抑制权重过大。本实验不惩罚偏置，也不对 BN 参数施加此项。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+linear_weights = [layer.weight for layer in model.modules()
+                  if isinstance(layer, nn.Linear)]
+data_loss = criterion(logits, labels)
+total_loss = data_loss
+if l2 > 0:
+    weight_square_sum = sum(w.square().sum() for w in linear_weights)
+    total_loss = data_loss + 0.5 * l2 * weight_square_sum
+total_loss.backward()
+optimizer.step()
+\end{lstlisting}
+\end{minipage}\par
+优化器的 \texttt{weight\_decay} 保持为 0，避免重复施加惩罚。日志分别记录数据损失和含 L2 的总目标；下图使用数据损失，验证和测试也只计算数据损失。
+\begin{figure}[H]\centering
+@@L2_TRIPLE@@
+\caption{L2 系数对训练数据损失、训练误差和测试误差的影响。}\label{fig:l2}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{L2 对比：固定轮次与验证选中模型的结果}
+\begin{tabular}{lrrr}\toprule
+L2 系数 & 第 60 轮训练误差 & 第 60 轮测试误差 & 最佳轮测试误差 \\\midrule
+@@L2_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}加入 L2 后，训练损失和训练误差保持在更高水平，且 $10^{-3}$ 的影响明显强于 $10^{-4}$。$\lambda=10^{-3}$ 时，第 60 轮训练误差为 9.21\%，测试误差为 12.78\%，相较无正则化的 1.72\% 和 10.65\% 均变差，说明在当前配置下约束过强，限制了有效拟合。$10^{-4}$ 的约束较温和，但最佳模型测试误差仍未优于无正则化组。L2 通过限制权重降低过拟合风险，并不保证任意系数都会提升泛化；其强度需要通过验证集选择。
+
+\question{附加题4：使用 Dropout，观察泛化表现}
+\textbf{实验设计与核心代码。}在大模型每个隐藏层的激活之后加入 $p=0.2$ 的 Dropout。训练时随机将 20\% 的激活置零，其余激活乘以 $1/(1-p)$；评估时关闭随机丢弃。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+layers.append(nn.Linear(previous_dim, hidden_dim))
+layers.append(activation_class())
+if dropout > 0.0:
+    layers.append(nn.Dropout(p=dropout))
+
+model.train()  # enable dropout while optimizing
+model.eval()   # disable dropout while evaluating
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+@@DROPOUT_TRIPLE@@
+\caption{Dropout 对比。训练损失在启用 Dropout 时记录；训练误差和测试误差均在评估模式下计算。}\label{fig:dropout}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{Dropout 对比结果}
+\begin{tabular}{lrrr}\toprule
+设置 & 第 60 轮训练误差 & 第 60 轮测试误差 & 最佳轮测试误差 \\\midrule
+@@DROPOUT_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}Dropout 不增加可学习参数，两组均为 2,383,370 个参数。加入 Dropout 后，训练损失下降较慢，最终训练误差由 1.72\% 增至 4.29\%，测试误差由 10.65\% 降至 10.11\%；训练与测试的差距由 8.93 缩小至 5.82 个百分点。随机丢弃抑制了模型对部分隐藏单元的过度依赖，本次实验中较弱的训练拟合对应了略好的末轮测试表现。
+
+按验证误差选择模型时，Dropout 组测试误差为 9.88\%，无正则化组为 9.94\%，只相差 6 个测试样本。该结果支持“本次运行中 Dropout 有一定改善”，还不足以说明其优势稳定或显著。
+
+\question{附加题5：使用 Batch Normalization，观察误差}
+\textbf{实验设计与核心代码。}在大模型的每个隐藏层中，将 BN 放在全连接层之后、ReLU 之前。对每个特征，训练时按批次计算
+\begin{equation}
+\hat{x}=\frac{x-\mu_B}{\sqrt{\sigma_B^2+\epsilon}},\qquad
+y=\gamma\hat{x}+\beta.
+\end{equation}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+layers.append(nn.Linear(previous_dim, hidden_dim))
+if batch_norm:
+    layers.append(nn.BatchNorm1d(hidden_dim))
+layers.append(activation_class())
+\end{lstlisting}
+\end{minipage}\par
+训练阶段使用批次统计量并更新运行均值、方差，评估阶段使用保存的运行统计量。因此，评估前的 \texttt{model.eval()} 对 BN 同样必要。BN 的可学习参数是每个特征的缩放 $\gamma$ 与平移 $\beta$，新增 $2\times(1024+1024+512)=5,120$ 个参数，总计 2,388,490；运行均值和方差属于缓冲量，不计入可学习参数。
+\begin{figure}[H]\centering
+@@BN_TRIPLE@@
+\caption{BN 对训练损失、训练误差和测试误差的影响。}\label{fig:bn}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{Batch Normalization 对比结果}
+\begin{tabular}{lrrr}\toprule
+设置 & 第 60 轮训练误差 & 第 60 轮测试误差 & 最佳轮测试误差 \\\midrule
+@@BN_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}BN 组第 60 轮训练误差为 0.64\%，低于无 BN 组的 1.72\%，测试误差为 10.10\%，也低于无 BN 组的 10.65\%。它在本次运行中提高了训练拟合程度，并改善了末轮测试表现，作用方式与 L2、Dropout 限制拟合的现象不同。
+
+BN 组在第 52 轮取得最低验证误差 8.98\%，对应测试误差为 10.03\%。若比较各组验证选出的模型，无 BN 组的测试误差 9.94\% 反而略低。这与“第 60 轮 BN 更好”并不矛盾，因为比较的模型轮次不同。BN 也没有消除训练与测试之间的差距，因此不能把归一化等同于解决过拟合。
+
+\clearpage
+\question{附加题6：训练神经网络解决 XOR 问题}
+\textbf{实验设计与核心代码。}XOR 在两个输入相同时输出 0，不同时输出 1。四个点不能由一条直线分开，单个线性分类器无法完成该任务。按照课件示例构建 $2\to5\to1$ 网络，隐藏层使用 ReLU，输出层为线性层，采用 MSE 和 SGD；随机种子为 1，学习率为 0.1，全批量更新 5,000 次。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lc1 = nn.Linear(2, 5)
+        self.lc2 = nn.Linear(5, 1)
+
+    def forward(self, x):
+        return self.lc2(F.relu(self.lc1(x)))
+
+x = torch.tensor([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
+y = torch.tensor([[0.], [1.], [1.], [0.]])
+model = Model()
+criterion = nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+for i in range(5000):
+    optimizer.zero_grad()
+    loss = criterion(model(x), y)
+    loss.backward()
+    optimizer.step()
+\end{lstlisting}
+\end{minipage}\par
+网络共有 $(2+1)\times5+(5+1)\times1=21$ 个参数。以输出大于 0.5 判为类别 1，结果如下：
+\begin{table}[H]\centering\small
+\caption{XOR 四种输入的训练结果}
+\begin{tabular}{rrrrr}\toprule
+$x_1$ & $x_2$ & 目标值 & 网络输出 & 判定类别 \\\midrule
+@@XOR_ROWS@@
+\bottomrule\end{tabular}
+\end{table}
+\begin{figure}[H]\centering
+@@XOR_PLOTS@@
+\caption{XOR 的训练损失与预测区域。损失纵轴采用对数刻度；右图黑线为网络输出等于 0.5 的边界。}\label{fig:xor}
+\end{figure}
+\textbf{结果与分析。}MSE 从训练前的 0.6723 降至约 $3.64\times10^{-13}$，四个输入均分类正确。ReLU 使网络能够表示分段线性函数，经多个隐藏单元组合形成非线性分类边界，从而区分 XOR 的两组对角顶点。若去掉隐藏层非线性，多层线性变换的复合仍是线性变换，无法解决这一问题。这里验证的是四个真值表输入的拟合能力；右图其他位置用于展示网络学到的函数形状，并不代表额外测试样本的正确标签。输出层为线性层，数值也不应解释为概率。
+
+\Needspace{26\baselineskip}
+\section{实验总结}
+本实验完成了 MLP 在 Fashion-MNIST 上的分类训练，并围绕课件要求逐项比较了结构、激活函数、损失函数和正则化方法，主要结论如下。
+\begin{enumerate}
+\item \textbf{结构影响表达能力，但参数更多不保证测试误差更低。}适度增宽改善了本次基础实验结果；增加深度或进一步扩大参数量，没有在相同 20 轮预算下持续带来收益。
+\item \textbf{激活函数和损失函数影响优化过程。}Sigmoid 前期学习较慢，但三种激活的最终误差接近；交叉熵与概率 MSE 均可用于训练，比较时应关注共同的分类误差，不能比较原始损失值大小。
+\item \textbf{训练损失下降不等于泛化持续改善。}大模型后期训练拟合增强，验证损失却恶化。分类误差与交叉熵反映不同性质，应结合观察，并使用独立验证集选择模型。
+\item \textbf{不同方法改变学习过程的方式不同。}本次 L2 系数较大时约束过强；Dropout 减弱训练拟合并缩小训练与测试的差距；BN 增强了训练拟合、改善了末轮测试表现，但并未消除泛化差距。
+\item \textbf{隐藏层非线性使网络能够解决线性不可分问题。}小型 ReLU 网络用 21 个参数完成 XOR 真值表的拟合，说明非线性变换的必要性。
+\end{enumerate}
+本次各配置仅运行一个随机种子，小幅差异可能来自训练随机性；后续可针对基线、Dropout 和 BN 等代表性配置增加多个种子，报告均值与标准差，并进一步在验证集上选择正则化强度。
+
+\section{实验代码架构简介}
+为支持上述控制变量实验，代码将参数配置、数据处理、模型、训练和评估分开。结构、激活、损失、L2、Dropout 与 BN 均由参数指定，使不同实验复用相同训练流程。
+\begin{table}[H]\centering\small
+\caption{实验代码的主要职责划分}
+\begin{tabular}{p{5.7cm}p{9.8cm}}\toprule
+文件 & 职责 \\\midrule
+\texttt{config.py}、\texttt{data.py} & 解析实验参数；加载数据并固定训练、验证划分。 \\
+\texttt{model.py}、\texttt{losses.py} & 构造不同隐藏层结构、激活、Dropout、BN 以及分类损失。 \\
+\texttt{engine.py}、\texttt{train.py} & 单轮训练、误差计算；组织训练并保存日志和检查点。 \\
+\texttt{run\_experiments.py} & 按预设配置顺序运行各组实验，减少手工修改和重复启动。 \\
+\texttt{evaluate.py}、\texttt{plot.py} & 评估已保存模型，整理误差和损失曲线。 \\
+\texttt{XOR.py} & 独立实现 XOR 网络及其训练。 \\
+\bottomrule\end{tabular}
+\end{table}
+每个实验单独保存配置与 CSV 指标，\texttt{last.pth} 用于恢复训练，\texttt{best.pth} 保存验证误差最低的模型。恢复时同时加载模型、优化器和随机状态，使中断后的训练可以继续；W\&B 使用离线模式记录同一组指标。以上组织方式主要服务于实验的可重复运行、结果比较和检查点复用。
+\end{document}

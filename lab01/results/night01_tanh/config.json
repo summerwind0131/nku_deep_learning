@@ -1,0 +1,19 @@
+{
+  "name": "night01_tanh",
+  "project": "fashion-mnist-lab01",
+  "hidden_dims": [
+    256,
+    128
+  ],
+  "activation": "tanh",
+  "batch_size": 64,
+  "lr": 0.001,
+  "seed": 42,
+  "split_seed": 42,
+  "optimizer": "Adam",
+  "loss": "cross_entropy",
+  "l2": 0.0,
+  "dropout": 0.0,
+  "batch_norm": false,
+  "data_protocol": "fashion_stratified_50k_10k_v1"
+}

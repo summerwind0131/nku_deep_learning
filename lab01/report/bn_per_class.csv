@@ -1,0 +1,11 @@
+﻿class_id,class_name,support,correct,recall
+0,T-shirt/top,1000,898,0.898
+1,Trouser,1000,977,0.977
+2,Pullover,1000,838,0.838
+3,Dress,1000,908,0.908
+4,Coat,1000,842,0.842
+5,Sandal,1000,967,0.967
+6,Shirt,1000,671,0.671
+7,Sneaker,1000,967,0.967
+8,Bag,1000,969,0.969
+9,Ankle boot,1000,960,0.96

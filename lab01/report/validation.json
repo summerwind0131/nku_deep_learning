@@ -1,0 +1,19 @@
+{
+  "pdf": "D:\\CodingLife\\deep_learning\\lab01\\report\\output\\pdf\\2412526-史峰源-实验1-提交版.pdf",
+  "tex": "D:\\CodingLife\\deep_learning\\lab01\\report\\2412526-史峰源-实验1.tex",
+  "revision": "2026-10-04: submission edition with GitHub repository link",
+  "pages": 15,
+  "figures": 9,
+  "tables": 11,
+  "basic_requirements": 5,
+  "extra_questions": 6,
+  "core_code_snippets_syntax_checked": 9,
+  "source_hashes_verified": 38,
+  "formal_runs": 12,
+  "compiler": "XeLaTeX, existing TeX Live 2024",
+  "compiler_warnings": 0,
+  "builtin_compiler": "Unavailable: Unable to find standard directories for platform",
+  "verification": "15 pages, no compiler warnings; homepage repository URL verified as a clickable PDF annotation; source archive verified and run from extracted directory.",
+  "pdf_sha256": "b76118df277ff8eb679c58cc76e4ea9831143bf29c7589388eefa26370f9460c",
+  "tex_sha256": "77f2ec694b03e343dffc5f7e44f30af813674de8f10d2ebb8cc4c4893349d5d1"
+}

@@ -1,0 +1,88 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# Downloaded datasets, training runs and model checkpoints
+data/
+datasets/
+results/
+# Keep only the compact evidence for the 12 formal Lab01 experiments.
+!/lab01/results/
+/lab01/results/*
+!/lab01/results/night01_*/
+/lab01/results/night01_*/*
+!/lab01/results/night01_*/config.json
+!/lab01/results/night01_*/history.csv
+!/lab01/results/night01_*/test_history.csv
+!/lab01/results/night01_*/test_summary.json
+!/lab01/results/_batch/
+/lab01/results/_batch/*
+!/lab01/results/_batch/night01/
+/lab01/results/_batch/night01/*
+!/lab01/results/_batch/night01/plan.json
+wandb/
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+
+# Local credentials (keep only deliberately authored examples)
+.env
+.env.*
+!.env.example
+.netrc
+_netrc
+*.pem
+*.key
+
+# Report working files; keep final PDF, TeX and compact analysis evidence
+**/report/tmp/
+**/report/archive/
+/lab01/submission/
+# Superseded local report exports; the final report stays tracked.
+/lab01/report/output/pdf/2412526-史峰源-实验1.pdf
+/lab01/report/output/pdf/2412526-史峰源-实验1-最终版.pdf
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.log
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.xdv
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local exercises outside Lab01 are not part of this repository submission.
+/Neural_Networks.py
+/pytorch1.py
+/pytorch_fundamentals.py
+/torch_autoguard.py

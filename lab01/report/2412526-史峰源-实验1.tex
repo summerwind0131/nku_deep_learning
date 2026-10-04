@@ -1,0 +1,551 @@
+% Based on the user-supplied laboratory-report header and layout.
+% Figures and data are embedded by build_report.py; the generated final .tex is standalone.
+\documentclass[UTF8,11pt,a4paper,fontset=fandol]{ctexart}
+\usepackage[left=2cm,right=2cm,top=2.4cm,bottom=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array,graphicx,xcolor}
+\usepackage{tikz,pgfplots}
+\usetikzlibrary{arrows.meta,positioning}
+\pgfplotsset{compat=1.18}
+\usepackage{float,caption,fancyhdr,listings,enumitem,hyperref,needspace}
+\hypersetup{hidelinks,pdftitle={实验一：多层感知机},pdfauthor={史峰源}}
+\definecolor{PBlue}{HTML}{3368A5}
+\definecolor{PGold}{HTML}{B77D25}
+\definecolor{POrange}{HTML}{C46C43}
+\definecolor{POlive}{HTML}{698440}
+\definecolor{PPink}{HTML}{A55D82}
+\definecolor{PGray}{HTML}{677280}
+\captionsetup{font=small,labelfont=bf,labelsep=quad,skip=10pt}
+\setlist{leftmargin=2em,itemsep=6pt,parsep=2pt,topsep=8pt}
+\setlength{\parskip}{5pt}
+\setlength{\headheight}{15pt}
+\setlength{\intextsep}{18pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{20pt plus 2pt minus 2pt}
+\renewcommand{\arraystretch}{1.35}
+\linespread{1.22}
+\setlength{\emergencystretch}{2em}
+\ctexset{section={beforeskip=22pt,afterskip=14pt},
+  subsection={beforeskip=18pt,afterskip=10pt}}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small 深度学习实验}
+\fancyhead[R]{\small 实验一：多层感知机}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\lstset{language=Python,basicstyle=\ttfamily\fontsize{9.5}{12.8}\selectfont,
+  keywordstyle=\color{PBlue},commentstyle=\color{PGray},
+  backgroundcolor=\color{black!3},frame=single,rulecolor=\color{black!15},
+  breaklines=true,columns=fullflexible,showstringspaces=false,tabsize=4,
+  framesep=6pt,xleftmargin=7pt,xrightmargin=7pt,
+  aboveskip=10pt,belowskip=10pt}
+\pgfplotsset{reportaxis/.style={
+  width=7.75cm,height=5.2cm,axis line style={black!35},tick style={black!35},
+  grid=major,grid style={black!10},tick label style={font=\scriptsize},
+  label style={font=\small},title style={font=\small\bfseries},
+  legend style={font=\scriptsize,draw=none,fill=none,at={(0.5,-0.28)},anchor=north},
+  legend columns=2,scaled ticks=false,
+  /pgf/number format/1000 sep={}}}
+\newcommand{\reportname}{实验一：多层感知机}
+\newcommand{\studentname}{史峰源}
+\newcommand{\studentnumber}{2412526}
+\newcommand{\studentmajor}{智能科学与技术}
+\newcommand{\teachername}{李欢}
+\newcommand{\err}{\operatorname{err}}
+
+\newcommand{\question}[1]{\Needspace{14\baselineskip}\subsection{#1}}
+\raggedbottom
+\begin{document}
+\thispagestyle{empty}
+\begin{center}
+  {\LARGE\bfseries 深\,度\,学\,习\,实\,验\,报\,告}\par\vspace{0.6em}
+  专业\underline{\makebox[9em]{\studentmajor}}\quad
+  姓名\underline{\makebox[5em]{\studentname}}\quad
+  学号\underline{\makebox[6em]{\studentnumber}}\par\vspace{0.35em}
+  课程：深度学习实验\qquad 指导教师：\teachername\qquad 报告日期：2026年10月4日\par
+  \vspace{0.2em}\rule{\textwidth}{1.2pt}\par\vspace{0.5em}
+  {\Large\bfseries\reportname}\par
+  {\normalsize Fashion-MNIST 分类、泛化分析与 XOR 非线性分类}
+  \par\vspace{0.5em}
+  {\small 代码与实验结果：\url{https://github.com/summerwind0131/nku_deep_learning}}
+\end{center}
+
+\section{实验目的与准备}
+本实验以 Fashion-MNIST 分类为任务，实现至少含两个隐藏层的多层感知机（MLP）。首先完成训练曲线、参数量、网络结构、激活函数和损失函数五项基本实验，再研究模型复杂度、过拟合、L2、Dropout、Batch Normalization，并使用神经网络解决 XOR 问题。
+
+Fashion-MNIST 图像大小为 $28\times28$，共有 10 类。使用 \texttt{ToTensor()} 将像素缩放至 $[0,1]$，进入网络时展平为 784 维向量，不使用额外的数据增强。将官方 60,000 张训练图像按类别分层划分为 50,000 张训练图像和 10,000 张验证图像；官方 10,000 张测试图像保持独立。划分种子固定为 42，各组共用同一划分。
+
+\begin{table}[H]\centering\small
+\caption{Fashion-MNIST 实验的共同设置}
+\begin{tabular}{llll}\toprule
+设置项 & 取值 & 设置项 & 取值 \\\midrule
+优化器 & Adam & 学习率 & $10^{-3}$ \\
+批量大小 & 64 & 训练随机种子 & 42 \\
+基础对比轮数 & 20 & 大模型对比轮数 & 60 \\
+基线隐藏层 & 256--128 & 基线激活 / 损失 & ReLU / 交叉熵 \\
+优化器 weight decay & 0 & 学习率调度 & 无 \\
+\bottomrule\end{tabular}
+\end{table}
+实验使用 RTX Laptop GPU，Python 3.10.20、PyTorch 2.11.0+cu128。每轮保存模型并计算验证误差，以验证误差最低的轮次保存 \texttt{best.pth}；测试曲线由训练结束后逐轮评估已保存模型得到。下文“最佳轮”均指验证误差最低的轮次，“最佳轮测试误差”为该轮模型在测试集上的误差。
+
+\clearpage
+\section{基本实验要求}
+\question{要求1：绘制训练损失、训练误差和测试误差曲线}
+\textbf{实现方法。}基线网络结构为 $784\to256\to128\to10$，两个隐藏层使用 ReLU，输出层给出 10 类的 logits。交叉熵直接接收 logits，在内部完成与 Softmax 对应的计算，因此不在模型输出处另加 Softmax。关键训练步骤如下：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+model = MLP(input_dim=784, hidden_dims=[256, 128],
+            output_dim=10, activation="relu")
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001,
+                             weight_decay=0.0)
+
+model.train()
+for images, labels in train_loader:
+    optimizer.zero_grad()
+    logits = model(images)
+    loss = criterion(logits, labels)
+    loss.backward()
+    optimizer.step()
+\end{lstlisting}
+\end{minipage}\par
+每轮训练损失按各批次样本数加权平均，分类误差则在该轮结束后，切换至 \texttt{model.eval()} 并关闭梯度，遍历数据集计算：
+\begin{equation}
+\overline{L}_{\rm train}=\frac{\sum_b n_b L_b}{\sum_b n_b},\qquad
+\err=\frac{1}{N}\sum_{i=1}^{N}\mathbb{I}\!\left[\arg\max_k z_{ik}\ne y_i\right].
+\end{equation}
+这里 $L_b$ 是当前批次的平均损失，$n_b$ 是其样本数。训练损失反映一轮内不断更新的模型，训练误差和测试误差反映轮末模型。
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练损失},xlabel={Epoch},ylabel={Loss},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.55035268) (2,0.3852541) (3,0.34366332) (4,0.31701517) (5,0.29828228) (6,0.28368824) (7,0.26648693) (8,0.2554977) (9,0.24492439) (10,0.23570943) (11,0.22487812) (12,0.21602741) (13,0.20821251) (14,0.19796861) (15,0.1918874) (16,0.18648889) (17,0.17812118) (18,0.17201788) (19,0.16366233) (20,0.15931193)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,14.004) (2,13.112) (3,11.084) (4,11.248) (5,10.242) (6,11.134) (7,10.166) (8,9) (9,8.828) (10,8.632) (11,8.214) (12,8.312) (13,7.396) (14,7.076) (15,6.988) (16,6.428) (17,6.234) (18,6.25) (19,5.754) (20,5.982)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,15.15) (2,14.63) (3,12.66) (4,13.49) (5,12.75) (6,13.42) (7,12.8) (8,11.92) (9,12.41) (10,11.88) (11,11.68) (12,11.98) (13,11.8) (14,11.18) (15,11.71) (16,11.17) (17,11.2) (18,11.07) (19,11.05) (20,11.53)};
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{0.5em}{\small \tikz[baseline=-.5ex]\draw[PBlue,solid,line width=.8pt] (0,0)--(.55,0);\ 256--128 / ReLU / CE}
+\caption{基线网络的训练损失、训练误差和测试误差。横轴均为训练轮次。}\label{fig:baseline}
+\end{figure}
+\textbf{结果与分析。}图\ref{fig:baseline}中，训练损失从第 1 轮的 0.5504 降至第 20 轮的 0.1593，训练误差从 14.00\% 降至 5.98\%，测试误差从 15.15\% 降至 11.53\%。前期两种误差同时下降，说明模型学到了能够用于未见图像的特征；后期训练误差继续减小，测试误差下降趋缓并有波动，说明继续拟合训练数据未必带来同等幅度的泛化改善。验证集选出的最佳轮次为第 19 轮，其验证误差为 9.90\%，测试误差为 11.05\%。因此，仅凭训练损失仍在下降，不能判断继续训练一定能改善测试表现。
+
+\question{要求2：计算网络参数量，包括权重数和偏置数}
+\textbf{计算方法。}输入维数为 $d_{\rm in}$、输出维数为 $d_{\rm out}$ 的全连接层含 $d_{\rm in}d_{\rm out}$ 个权重和 $d_{\rm out}$ 个偏置。因此，基线网络的参数量为
+\begin{equation}
+P=(784+1)\times256+(256+1)\times128+(128+1)\times10=235,146.
+\end{equation}
+\begin{table}[H]\centering\small
+\caption{基线网络参数量的逐层计算}
+\begin{tabular}{lrrr}\toprule
+全连接层 & 权重数 & 偏置数 & 合计 \\\midrule
+$784\to256$ & 200,704 & 256 & 200,960 \\
+$256\to128$ & 32,768 & 128 & 32,896 \\
+$128\to10$ & 1,280 & 10 & 1,290 \\\midrule
+总计 & 234,752 & 394 & 235,146 \\
+\bottomrule\end{tabular}
+\end{table}
+\Needspace{4\baselineskip}
+通过代码对模型参数进行核对：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+num_params = sum(p.numel() for p in model.parameters())
+\end{lstlisting}
+\end{minipage}\par
+\textbf{结果与分析。}程序统计与手算一致。Flatten 和 ReLU 没有可学习参数；第一层全连接占基线参数量约 85.5\%，因此调整第一隐藏层宽度对总参数量影响尤其明显。
+
+\question{要求3：改变隐藏层层数或神经元数，比较曲线与参数量}
+\textbf{实验设计与核心代码。}固定 ReLU、交叉熵及表 1 的训练设置，比较 64--32、256--128、512--256 三种两隐藏层结构，并加入 256--128--64 三隐藏层结构。每组均训练 20 轮。网络根据隐藏层维度列表逐层构造：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+layers = [nn.Flatten(start_dim=1)]
+previous_dim = input_dim
+for hidden_dim in hidden_dims:
+    layers.append(nn.Linear(previous_dim, hidden_dim))
+    layers.append(activation_class())
+    previous_dim = hidden_dim
+layers.append(nn.Linear(previous_dim, output_dim))
+self.network = nn.Sequential(*layers)
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练损失},xlabel={Epoch},ylabel={Loss},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.65195077) (2,0.44053826) (3,0.40057416) (4,0.37073267) (5,0.35043243) (6,0.33744251) (7,0.32218702) (8,0.31079716) (9,0.30050304) (10,0.2915855) (11,0.28631459) (12,0.27598598) (13,0.26991758) (14,0.26025046) (15,0.25632647) (16,0.2512505) (17,0.24475737) (18,0.24245196) (19,0.23410987) (20,0.23063996)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,0.55035268) (2,0.3852541) (3,0.34366332) (4,0.31701517) (5,0.29828228) (6,0.28368824) (7,0.26648693) (8,0.2554977) (9,0.24492439) (10,0.23570943) (11,0.22487812) (12,0.21602741) (13,0.20821251) (14,0.19796861) (15,0.1918874) (16,0.18648889) (17,0.17812118) (18,0.17201788) (19,0.16366233) (20,0.15931193)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,0.52099727) (2,0.37372533) (3,0.3346642) (4,0.3077765) (5,0.28756724) (6,0.27221961) (7,0.25573599) (8,0.24693584) (9,0.2326494) (10,0.22273511) (11,0.2133106) (12,0.20638277) (13,0.19789013) (14,0.18724537) (15,0.18253935) (16,0.17601013) (17,0.16747248) (18,0.1629598) (19,0.15536894) (20,0.1481238)};
+\addplot[POlive,dotted,line width=0.8pt,no marks] coordinates {(1,0.5882136) (2,0.39757726) (3,0.35290027) (4,0.32304822) (5,0.30150919) (6,0.28971148) (7,0.272791) (8,0.26398768) (9,0.25096435) (10,0.24198369) (11,0.2308821) (12,0.22409162) (13,0.21442097) (14,0.20496635) (15,0.19819874) (16,0.19317112) (17,0.18714349) (18,0.17945289) (19,0.17272284) (20,0.16617441)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,15.832) (2,14.336) (3,13.936) (4,13.02) (5,11.892) (6,12.812) (7,11.214) (8,11.138) (9,11.106) (10,10.892) (11,9.816) (12,10.232) (13,9.204) (14,9.18) (15,9.206) (16,8.526) (17,9.168) (18,9.326) (19,8.296) (20,8.31)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,14.004) (2,13.112) (3,11.084) (4,11.248) (5,10.242) (6,11.134) (7,10.166) (8,9) (9,8.828) (10,8.632) (11,8.214) (12,8.312) (13,7.396) (14,7.076) (15,6.988) (16,6.428) (17,6.234) (18,6.25) (19,5.754) (20,5.982)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,13.666) (2,13.086) (3,10.806) (4,10.886) (5,10.116) (6,10.444) (7,8.934) (8,8.054) (9,8.164) (10,8.574) (11,7.562) (12,7.864) (13,6.866) (14,7.072) (15,6.248) (16,5.798) (17,6.24) (18,5.906) (19,5.59) (20,5.058)};
+\addplot[POlive,dotted,line width=0.8pt,no marks] coordinates {(1,14.758) (2,13.438) (3,11.41) (4,11.876) (5,10.274) (6,10.692) (7,9.616) (8,8.932) (9,9.32) (10,8.834) (11,8.25) (12,7.78) (13,7.202) (14,7.634) (15,7.226) (16,6.456) (17,6.652) (18,6.804) (19,5.994) (20,6.178)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,16.8) (2,15.62) (3,15.3) (4,14.92) (5,13.83) (6,14.51) (7,13.23) (8,13.08) (9,13.44) (10,13.63) (11,12.29) (12,13.13) (13,12.56) (14,12.01) (15,12.39) (16,12) (17,12.57) (18,12.82) (19,12.21) (20,12.85)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,15.15) (2,14.63) (3,12.66) (4,13.49) (5,12.75) (6,13.42) (7,12.8) (8,11.92) (9,12.41) (10,11.88) (11,11.68) (12,11.98) (13,11.8) (14,11.18) (15,11.71) (16,11.17) (17,11.2) (18,11.07) (19,11.05) (20,11.53)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,15.14) (2,14.6) (3,12.59) (4,13.28) (5,13.05) (6,12.93) (7,12.1) (8,11.28) (9,11.8) (10,12.33) (11,11.42) (12,11.52) (13,11.46) (14,11.3) (15,10.66) (16,10.92) (17,11.11) (18,10.93) (19,11.15) (20,10.73)};
+\addplot[POlive,dotted,line width=0.8pt,no marks] coordinates {(1,16.15) (2,14.81) (3,12.93) (4,14.01) (5,12.9) (6,12.97) (7,12.5) (8,12.03) (9,12.81) (10,12.46) (11,11.82) (12,11.77) (13,11.36) (14,11.59) (15,12.26) (16,11.24) (17,11.17) (18,11.65) (19,11.32) (20,11.22)};
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{0.5em}{\small \tikz[baseline=-.5ex]\draw[PBlue,solid,line width=.8pt] (0,0)--(.55,0);\ 64--32\quad \tikz[baseline=-.5ex]\draw[PGold,dashed,line width=.8pt] (0,0)--(.55,0);\ 256--128\quad \tikz[baseline=-.5ex]\draw[POrange,dashdotted,line width=.8pt] (0,0)--(.55,0);\ 512--256\quad \tikz[baseline=-.5ex]\draw[POlive,dotted,line width=.8pt] (0,0)--(.55,0);\ 256--128--64}
+\caption{不同隐藏层结构下的三类训练曲线，训练预算均为 20 轮。}\label{fig:structure}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{结构对比：参数量与验证集选中轮次的结果}
+\begin{tabular}{lrrrr}\toprule
+隐藏层结构 & 参数量 & 最佳轮 & 验证误差 & 对应测试误差 \\\midrule
+64--32 & 52,650 & 16 & 10.62\% & 12.00\% \\
+256--128 & 235,146 & 19 & 9.90\% & 11.05\% \\
+512--256 & 535,818 & 20 & 9.48\% & 10.73\% \\
+256--128--64 & 242,762 & 13 & 9.76\% & 11.36\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}在两隐藏层网络中，增大宽度带来了更强的拟合能力。第 20 轮时，64--32、256--128、512--256 的训练误差分别为 8.31\%、5.98\% 和 5.06\%，测试误差分别为 12.85\%、11.53\% 和 10.73\%。结合曲线可以看到，窄网络的训练损失下降后停留在较高水平，宽网络在本次运行中同时改善了训练和测试表现。
+
+增加一个 64 维隐藏层后，参数量从 235,146 增至 242,762。其最佳验证误差为 9.76\%，略低于基线，但对应测试误差 11.36\% 略高于基线的 11.05\%。这说明增加深度并没有在本实验中带来一致改善。深度增加改变了特征变换方式，也增加了优化难度；它与简单增加宽度的效果不能等同。这里同时改变了结构和参数量，不能把差异全部归因于“层数”这一个因素。
+
+\question{要求4：尝试不同激活函数，观察三类曲线}
+\textbf{实验设计与核心代码。}保持隐藏层为 256--128，分别在两个隐藏层使用 ReLU、Tanh 和 Sigmoid，其他设置完全相同。三组参数量均为 235,146。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+activation_classes = {
+    "relu": nn.ReLU,
+    "tanh": nn.Tanh,
+    "sigmoid": nn.Sigmoid,
+}
+activation_class = activation_classes[activation]
+layers.append(activation_class())
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练损失},xlabel={Epoch},ylabel={Loss},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.55035268) (2,0.3852541) (3,0.34366332) (4,0.31701517) (5,0.29828228) (6,0.28368824) (7,0.26648693) (8,0.2554977) (9,0.24492439) (10,0.23570943) (11,0.22487812) (12,0.21602741) (13,0.20821251) (14,0.19796861) (15,0.1918874) (16,0.18648889) (17,0.17812118) (18,0.17201788) (19,0.16366233) (20,0.15931193)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,0.51591225) (2,0.38073823) (3,0.3448823) (4,0.31981347) (5,0.29961432) (6,0.28520792) (7,0.27004761) (8,0.26043333) (9,0.2461021) (10,0.24010226) (11,0.23187897) (12,0.22185012) (13,0.21510166) (14,0.20707383) (15,0.20032786) (16,0.19325882) (17,0.18660532) (18,0.18644759) (19,0.17703079) (20,0.16930688)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,0.73802395) (2,0.41915818) (3,0.37493693) (4,0.34459547) (5,0.32502905) (6,0.31184199) (7,0.29475525) (8,0.28482311) (9,0.27104369) (10,0.26181158) (11,0.25265226) (12,0.24311182) (13,0.23396124) (14,0.22374106) (15,0.21653451) (16,0.21084898) (17,0.20055539) (18,0.19625033) (19,0.1880216) (20,0.18050343)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,14.004) (2,13.112) (3,11.084) (4,11.248) (5,10.242) (6,11.134) (7,10.166) (8,9) (9,8.828) (10,8.632) (11,8.214) (12,8.312) (13,7.396) (14,7.076) (15,6.988) (16,6.428) (17,6.234) (18,6.25) (19,5.754) (20,5.982)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,13.942) (2,13.028) (3,11.368) (4,11.496) (5,10.376) (6,10.674) (7,9.732) (8,8.612) (9,9.036) (10,8.972) (11,8.214) (12,8.296) (13,7.768) (14,7.688) (15,6.942) (16,6.482) (17,6.63) (18,6.228) (19,5.978) (20,6.492)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,15.78) (2,13.848) (3,12.83) (4,11.738) (5,11.144) (6,11.652) (7,10.574) (8,9.518) (9,10.036) (10,9.568) (11,8.904) (12,8.926) (13,8.11) (14,7.86) (15,7.556) (16,6.986) (17,7.42) (18,6.978) (19,6.412) (20,6.252)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,15.15) (2,14.63) (3,12.66) (4,13.49) (5,12.75) (6,13.42) (7,12.8) (8,11.92) (9,12.41) (10,11.88) (11,11.68) (12,11.98) (13,11.8) (14,11.18) (15,11.71) (16,11.17) (17,11.2) (18,11.07) (19,11.05) (20,11.53)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,15.31) (2,14.68) (3,13.18) (4,13.81) (5,13.01) (6,13.08) (7,12.6) (8,11.62) (9,12.8) (10,12.69) (11,11.82) (12,12.51) (13,12.27) (14,11.9) (15,11.69) (16,10.99) (17,11.72) (18,11.23) (19,11.41) (20,12)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,17.03) (2,15.27) (3,14.24) (4,13.72) (5,13.47) (6,13.48) (7,12.88) (8,12.12) (9,13.03) (10,12.51) (11,12.06) (12,12.17) (13,11.93) (14,11.5) (15,11.65) (16,11.19) (17,11.86) (18,11.67) (19,11.62) (20,11.38)};
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{0.5em}{\small \tikz[baseline=-.5ex]\draw[PBlue,solid,line width=.8pt] (0,0)--(.55,0);\ ReLU\quad \tikz[baseline=-.5ex]\draw[PGold,dashed,line width=.8pt] (0,0)--(.55,0);\ Tanh\quad \tikz[baseline=-.5ex]\draw[POrange,dashdotted,line width=.8pt] (0,0)--(.55,0);\ Sigmoid}
+\caption{不同激活函数下的训练损失、训练误差和测试误差。}\label{fig:activation}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{激活函数对比：验证集选中轮次的结果}
+\begin{tabular}{lrrr}\toprule
+激活函数 & 最佳轮 & 验证误差 & 对应测试误差 \\\midrule
+ReLU & 19 & 9.90\% & 11.05\% \\
+Tanh & 19 & 9.98\% & 11.41\% \\
+Sigmoid & 16 & 10.04\% & 11.19\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}第一轮训练损失分别为 ReLU 0.5504、Tanh 0.5159、Sigmoid 0.7380，Sigmoid 的前期学习较慢。Sigmoid 的导数最大为 $1/4$，且在输入绝对值较大时接近零；Tanh 也有饱和区，而 ReLU 在正区间保持导数为 1。这些性质可以解释激活函数可能对梯度传播产生的影响，但本实验未记录逐层梯度，不能仅凭曲线确认具体的梯度消失程度。
+
+经过 20 轮训练，三种激活均可获得较好的分类结果，最佳验证误差的最大差距只有 0.14 个百分点。ReLU 在本次实验的最佳模型测试误差最低，但优势较小；对于当前两隐藏层网络，激活函数改变主要影响早期学习速度，最终分类误差并未拉开很大差距。
+
+\question{要求5：尝试不同损失函数，观察三类曲线}
+\textbf{实验设计与核心代码。}固定 256--128、ReLU，对比交叉熵和均方误差。对于 MSE，先将 logits 转换为类别概率，将标签转换为 one-hot 向量，再计算均方误差。若类别数 $K=10$，则两种目标为
+\begin{equation}
+L_{\rm CE}=-\frac{1}{N}\sum_i\log p_{i,y_i},\qquad
+L_{\rm MSE}=\frac{1}{NK}\sum_i\sum_k(p_{ik}-\mathbb{I}[y_i=k])^2.
+\end{equation}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+class ClassificationMSELoss(nn.Module):
+    def forward(self, logits, labels):
+        probabilities = F.softmax(logits, dim=1)
+        targets = F.one_hot(labels, num_classes=logits.shape[1])
+        targets = targets.to(dtype=logits.dtype)
+        return F.mse_loss(probabilities, targets)
+
+def build_loss(name):
+    if name == "cross_entropy":
+        return nn.CrossEntropyLoss()
+    if name == "mse":
+        return ClassificationMSELoss()
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.4cm,title={交叉熵训练损失},xlabel={Epoch},ylabel={CE},legend columns=2,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.55035268) (2,0.3852541) (3,0.34366332) (4,0.31701517) (5,0.29828228) (6,0.28368824) (7,0.26648693) (8,0.2554977) (9,0.24492439) (10,0.23570943) (11,0.22487812) (12,0.21602741) (13,0.20821251) (14,0.19796861) (15,0.1918874) (16,0.18648889) (17,0.17812118) (18,0.17201788) (19,0.16366233) (20,0.15931193)};
+\addlegendentry{CE}
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.4cm,title={概率 MSE 训练损失},xlabel={Epoch},ylabel={MSE},legend columns=2,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.028446933) (2,0.020544898) (3,0.018732224) (4,0.017291362) (5,0.016312127) (6,0.015801976) (7,0.015073422) (8,0.014652169) (9,0.014116821) (10,0.013660545) (11,0.013174272) (12,0.012837168) (13,0.012576757) (14,0.012203443) (15,0.011862886) (16,0.011411021) (17,0.01120439) (18,0.011093906) (19,0.010727311) (20,0.010492567)};
+\addlegendentry{MSE}
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{1.2em}\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.4cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,14.004) (2,13.112) (3,11.084) (4,11.248) (5,10.242) (6,11.134) (7,10.166) (8,9) (9,8.828) (10,8.632) (11,8.214) (12,8.312) (13,7.396) (14,7.076) (15,6.988) (16,6.428) (17,6.234) (18,6.25) (19,5.754) (20,5.982)};
+\addlegendentry{CE}
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,14.766) (2,13.172) (3,11.65) (4,11.076) (5,10.93) (6,10.032) (7,9.476) (8,9.33) (9,9.008) (10,8.536) (11,9.234) (12,8.274) (13,7.586) (14,7.534) (15,7.606) (16,7.132) (17,7.542) (18,6.714) (19,6.73) (20,6.644)};
+\addlegendentry{MSE}
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.4cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,xmin=1,xmax=20,ymin=0,xtick={1,5,10,15,20},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,15.15) (2,14.63) (3,12.66) (4,13.49) (5,12.75) (6,13.42) (7,12.8) (8,11.92) (9,12.41) (10,11.88) (11,11.68) (12,11.98) (13,11.8) (14,11.18) (15,11.71) (16,11.17) (17,11.2) (18,11.07) (19,11.05) (20,11.53)};
+\addlegendentry{CE}
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,16.03) (2,14.92) (3,13.26) (4,13.26) (5,13.52) (6,12.29) (7,11.79) (8,12.41) (9,11.99) (10,11.85) (11,12.42) (12,11.58) (13,11.47) (14,11.14) (15,11.47) (16,11.4) (17,11.7) (18,11.25) (19,11.51) (20,11.49)};
+\addlegendentry{MSE}
+\end{axis}\end{tikzpicture}\end{minipage}
+\caption{交叉熵与概率 MSE 的对比。上排分别展示训练损失，下排用相同误差尺度比较分类表现。}\label{fig:loss}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{损失函数对比：验证集选中轮次的结果}
+\begin{tabular}{lrrr}\toprule
+损失函数 & 最佳轮 & 验证误差 & 对应测试误差 \\\midrule
+交叉熵 CE & 19 & 9.90\% & 11.05\% \\
+Softmax + one-hot MSE & 18 & 9.76\% & 11.25\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}两种损失都能有效训练网络，最佳模型的测试误差均约为 11\%。MSE 的最佳验证误差略低，但其对应测试误差为 11.25\%，略高于交叉熵的 11.05\%。因此，本次结果没有显示 MSE 带来明确的分类优势。
+
+MSE 曲线的数值明显小于交叉熵，不能据此认定它训练得更好：两者定义和尺度不同，MSE 还对 10 个类别取了平均。交叉熵在真实类别概率接近零时惩罚很大，而概率 MSE 有界，两者对错误预测的梯度反馈也不同。公平判断应结合各自损失的下降趋势以及共同的分类误差指标。此处使用相同学习率，未分别为两种损失调优。
+
+\clearpage
+\section{附加题}
+\question{附加题1：模型复杂度与训练误差、测试误差的关系}
+在结构实验基础上，增加隐藏层为 1024--1024--512 的大模型。实现仍使用前述 \texttt{hidden\_dims} 循环，只需改变列表即可。为避免把训练轮数的影响误认为模型复杂度的影响，先将五种结构统一比较到第 20 轮：
+\begin{table}[H]\centering\small
+\caption{固定第 20 轮时，不同复杂度模型的分类误差}
+\begin{tabular}{lrrr}\toprule
+隐藏层结构 & 参数量 & 训练误差 & 测试误差 \\\midrule
+64--32 & 52,650 & 8.31\% & 12.85\% \\
+256--128 & 235,146 & 5.98\% & 11.53\% \\
+512--256 & 535,818 & 5.06\% & 10.73\% \\
+256--128--64 & 242,762 & 6.18\% & 11.22\% \\
+1024--1024--512 & 2,383,370 & 5.67\% & 11.45\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{分析。}从 64--32 增宽到 512--256 时，训练和测试误差同时下降，表明较小模型的表达能力限制了结果。但继续扩大到 2,383,370 个参数，在第 20 轮并没有超过 512--256 的测试表现；训练误差也未严格随参数量单调下降。参数量影响可表示的函数范围，实际训练结果还取决于优化路径、随机初始化和训练预算。
+
+大模型训练至 60 轮后，验证集选出的第 56 轮模型取得 9.94\% 的测试误差，说明该模型在更长训练下仍有改善空间。但这一结果同时改变了结构和训练轮数，不能作为“参数越多越好”的证据。模型复杂度应结合训练误差是否过高、训练与测试之间的差距及验证表现共同判断。
+
+\question{附加题2：观察过拟合；必要时增大模型使其明显}
+\textbf{实验方法。}采用 1024--1024--512、ReLU、交叉熵，不启用 L2、Dropout 或 BN，训练 60 轮。使用现有参数接口即可完成这一设置：
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[language={}]
+python train.py --name night01_large_plain \
+  --hidden-dims 1024 1024 512 --epochs 60
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=5.2cm,title={训练与验证损失},xlabel={Epoch},ylabel={CE},legend columns=2,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.51550312) (2,0.38169283) (3,0.33962163) (4,0.30989741) (5,0.29115193) (6,0.27312917) (7,0.25953176) (8,0.24919729) (9,0.2344227) (10,0.22534941) (11,0.224728) (12,0.20569376) (13,0.20070807) (14,0.19180222) (15,0.18650532) (16,0.1780102) (17,0.17147738) (18,0.16529367) (19,0.15935038) (20,0.15464759) (21,0.14383508) (22,0.14870927) (23,0.13607471) (24,0.13745896) (25,0.1244959) (26,0.12537882) (27,0.12488627) (28,0.1176773) (29,0.11296221) (30,0.10831497) (31,0.11402691) (32,0.10345783) (33,0.10202664) (34,0.094418016) (35,0.097185397) (36,0.094364189) (37,0.088519056) (38,0.089944444) (39,0.081362372) (40,0.085308899) (41,0.086422908) (42,0.084791751) (43,0.074470283) (44,0.07620943) (45,0.074441671) (46,0.077278011) (47,0.073717595) (48,0.062298637) (49,0.064675676) (50,0.066431547) (51,0.071958783) (52,0.067975883) (53,0.06573707) (54,0.060476292) (55,0.066035317) (56,0.058331229) (57,0.063107919) (58,0.053821602) (59,0.062974206) (60,0.054182199)};
+\addlegendentry{训练}
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,0.38584497) (2,0.40064457) (3,0.33071142) (4,0.32469137) (5,0.30754012) (6,0.32294088) (7,0.31148638) (8,0.29282316) (9,0.31823209) (10,0.34842435) (11,0.30564305) (12,0.32540972) (13,0.32453551) (14,0.35461265) (15,0.34185013) (16,0.33173204) (17,0.35504711) (18,0.36050366) (19,0.39610476) (20,0.39570333) (21,0.3755906) (22,0.37032879) (23,0.40541324) (24,0.36978475) (25,0.44778442) (26,0.39720257) (27,0.44902653) (28,0.48451798) (29,0.46509334) (30,0.47093371) (31,0.42508069) (32,0.50012681) (33,0.4802078) (34,0.54418782) (35,0.51500328) (36,0.54034894) (37,0.54604985) (38,0.54164483) (39,0.6301954) (40,0.56328615) (41,0.61090347) (42,0.57580113) (43,0.58090961) (44,0.71521381) (45,0.63463722) (46,0.64343585) (47,0.57886271) (48,0.60696705) (49,0.71260195) (50,0.5561896) (51,0.64639803) (52,0.73375712) (53,0.69938425) (54,0.6929342) (55,0.71678625) (56,0.70734165) (57,0.70374067) (58,0.73250529) (59,0.72249192) (60,0.73804023)};
+\addlegendentry{验证}
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=5.2cm,title={分类误差与泛化差距},xlabel={Epoch},ylabel={误差（\%）},legend columns=3,xmin=1,xmax=60,ymin=0,ymax=18,xtick={1,20,40,60}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,13.374) (2,13.834) (3,11.13) (4,10.552) (5,9.826) (6,10.026) (7,9.254) (8,8.036) (9,8.326) (10,9.076) (11,8.166) (12,7.092) (13,7.24) (14,7.94) (15,6.536) (16,6.252) (17,6.344) (18,6.06) (19,6.196) (20,5.666) (21,5.24) (22,5.356) (23,4.484) (24,4.556) (25,4.168) (26,4.222) (27,4.292) (28,3.73) (29,4.046) (30,3.958) (31,4.914) (32,3.546) (33,3.488) (34,3.608) (35,3.074) (36,3.476) (37,3.042) (38,2.834) (39,3.338) (40,2.624) (41,3.392) (42,2.164) (43,2.85) (44,3.14) (45,2.97) (46,2.26) (47,2.76) (48,2.146) (49,2.008) (50,3.034) (51,2.378) (52,3.082) (53,1.952) (54,1.9) (55,2.808) (56,1.792) (57,1.506) (58,1.598) (59,1.446) (60,1.724)};
+\addlegendentry{训练}
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,13.7) (2,14.2) (3,12.02) (4,11.44) (5,11.23) (6,11.27) (7,10.93) (8,10.22) (9,10.98) (10,11.51) (11,10.47) (12,10.29) (13,10.17) (14,10.99) (15,10.09) (16,10.06) (17,10.28) (18,10.08) (19,10.11) (20,10.3) (21,9.73) (22,10.23) (23,9.59) (24,9.8) (25,9.51) (26,9.49) (27,9.79) (28,9.72) (29,9.77) (30,10.29) (31,10.24) (32,9.59) (33,9.82) (34,10.08) (35,9.67) (36,10.07) (37,9.74) (38,9.49) (39,9.96) (40,10.16) (41,9.9) (42,9.59) (43,10.06) (44,10.05) (45,10.48) (46,9.59) (47,10.07) (48,9.71) (49,9.48) (50,9.97) (51,9.86) (52,9.92) (53,9.73) (54,9.64) (55,10.75) (56,9.42) (57,9.61) (58,9.88) (59,9.77) (60,9.85)};
+\addlegendentry{验证}
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,14.82) (2,15.45) (3,13.41) (4,12.85) (5,12.53) (6,12.79) (7,12.29) (8,11.37) (9,11.79) (10,12.8) (11,11.63) (12,11.28) (13,11.21) (14,11.56) (15,11.02) (16,11.03) (17,10.94) (18,11.07) (19,11.11) (20,11.45) (21,10.72) (22,11.26) (23,10.72) (24,10.71) (25,10.45) (26,10.59) (27,10.73) (28,10.52) (29,10.74) (30,11.08) (31,10.92) (32,9.69) (33,10.56) (34,10.59) (35,10.48) (36,10.66) (37,10.29) (38,10.4) (39,11.15) (40,10.39) (41,10.74) (42,10.29) (43,10.73) (44,10.64) (45,11.48) (46,10.43) (47,10.82) (48,10.24) (49,10.52) (50,10.8) (51,10.65) (52,10.82) (53,10.59) (54,10.85) (55,11.23) (56,9.94) (57,10.59) (58,10.4) (59,10.49) (60,10.65)};
+\addlegendentry{测试}
+\end{axis}\end{tikzpicture}\end{minipage}
+\caption{大模型的过拟合现象：训练和验证损失，以及训练、验证、测试误差。}\label{fig:overfit}
+\end{figure}
+\textbf{结果与分析。}第 60 轮训练误差降至 1.72\%，测试误差仍为 10.65\%，两者相差约 8.93 个百分点。与此同时，验证交叉熵在第 8 轮达到约 0.293 后总体升高，到第 60 轮增至约 0.738，而训练损失继续下降至 0.0542。模型对训练数据的拟合越来越好，却没有在未参与训练的数据上获得相应收益，过拟合现象比小模型更明显。
+
+需要区分图中的两个现象：测试分类误差没有持续单调上升，后期部分轮次仍有改善；验证损失却明显恶化。分类误差只关注最大概率对应的类别是否正确，交叉熵还关注真实类别的概率。少量置信度很高的错误预测就可能显著增大交叉熵，而不会同比例增加错误样本数。因此，本组结果应表述为“训练与测试差距增大、验证损失恶化”，而不能笼统声称“越训练测试误差越高”。
+
+\question{附加题3：在目标函数中加入 L2 正则化，观察误差}
+\textbf{实验设计与核心代码。}在同一大模型上比较 $\lambda=0,10^{-4},10^{-3}$，每组均训练 60 轮。将全连接层权重的平方和加入目标：
+\begin{equation}
+J=L_{\rm data}+\frac{\lambda}{2}\sum_{\ell}\|W^{(\ell)}\|_F^2.
+\end{equation}
+该项向权重梯度中加入 $\lambda W^{(\ell)}$，抑制权重过大。本实验不惩罚偏置，也不对 BN 参数施加此项。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+linear_weights = [layer.weight for layer in model.modules()
+                  if isinstance(layer, nn.Linear)]
+data_loss = criterion(logits, labels)
+total_loss = data_loss
+if l2 > 0:
+    weight_square_sum = sum(w.square().sum() for w in linear_weights)
+    total_loss = data_loss + 0.5 * l2 * weight_square_sum
+total_loss.backward()
+optimizer.step()
+\end{lstlisting}
+\end{minipage}\par
+优化器的 \texttt{weight\_decay} 保持为 0，避免重复施加惩罚。日志分别记录数据损失和含 L2 的总目标；下图使用数据损失，验证和测试也只计算数据损失。
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练损失},xlabel={Epoch},ylabel={Loss},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.51550312) (2,0.38169283) (3,0.33962163) (4,0.30989741) (5,0.29115193) (6,0.27312917) (7,0.25953176) (8,0.24919729) (9,0.2344227) (10,0.22534941) (11,0.224728) (12,0.20569376) (13,0.20070807) (14,0.19180222) (15,0.18650532) (16,0.1780102) (17,0.17147738) (18,0.16529367) (19,0.15935038) (20,0.15464759) (21,0.14383508) (22,0.14870927) (23,0.13607471) (24,0.13745896) (25,0.1244959) (26,0.12537882) (27,0.12488627) (28,0.1176773) (29,0.11296221) (30,0.10831497) (31,0.11402691) (32,0.10345783) (33,0.10202664) (34,0.094418016) (35,0.097185397) (36,0.094364189) (37,0.088519056) (38,0.089944444) (39,0.081362372) (40,0.085308899) (41,0.086422908) (42,0.084791751) (43,0.074470283) (44,0.07620943) (45,0.074441671) (46,0.077278011) (47,0.073717595) (48,0.062298637) (49,0.064675676) (50,0.066431547) (51,0.071958783) (52,0.067975883) (53,0.06573707) (54,0.060476292) (55,0.066035317) (56,0.058331229) (57,0.063107919) (58,0.053821602) (59,0.062974206) (60,0.054182199)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,0.51773405) (2,0.39050138) (3,0.34785384) (4,0.32398493) (5,0.30415593) (6,0.29190676) (7,0.27780309) (8,0.26869784) (9,0.26019897) (10,0.25149021) (11,0.24430927) (12,0.23704139) (13,0.23058222) (14,0.2229202) (15,0.21927695) (16,0.21158173) (17,0.2085411) (18,0.2050305) (19,0.19895739) (20,0.19412564) (21,0.18876095) (22,0.18641798) (23,0.18376194) (24,0.18045408) (25,0.17386858) (26,0.17380555) (27,0.16918713) (28,0.17200859) (29,0.16236485) (30,0.16235179) (31,0.16216002) (32,0.15809179) (33,0.15526064) (34,0.15041794) (35,0.15127037) (36,0.15068977) (37,0.15070514) (38,0.14536765) (39,0.14540121) (40,0.13913986) (41,0.13851796) (42,0.14070914) (43,0.13431814) (44,0.13566338) (45,0.13173656) (46,0.13230166) (47,0.13104174) (48,0.13159663) (49,0.12557958) (50,0.12410463) (51,0.12589948) (52,0.12143017) (53,0.12244385) (54,0.12216497) (55,0.11557268) (56,0.11955511) (57,0.11677307) (58,0.11280044) (59,0.11798483) (60,0.11301748)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,0.53905741) (2,0.42345685) (3,0.3920022) (4,0.36906367) (5,0.34865487) (6,0.3399225) (7,0.32992451) (8,0.3231631) (9,0.31700755) (10,0.31472292) (11,0.31055703) (12,0.30627076) (13,0.30544317) (14,0.29873682) (15,0.29823832) (16,0.29539543) (17,0.29384897) (18,0.29042763) (19,0.2884571) (20,0.28523718) (21,0.28349105) (22,0.28273803) (23,0.28307026) (24,0.27807537) (25,0.28079429) (26,0.27922575) (27,0.27502846) (28,0.275208) (29,0.27332594) (30,0.27807123) (31,0.27405816) (32,0.2689512) (33,0.27180063) (34,0.26975128) (35,0.26677395) (36,0.26953605) (37,0.26986486) (38,0.26467825) (39,0.26607363) (40,0.26343354) (41,0.26660842) (42,0.26423358) (43,0.26385791) (44,0.26091206) (45,0.26267006) (46,0.25877585) (47,0.2621282) (48,0.26089106) (49,0.26119093) (50,0.26021095) (51,0.2628401) (52,0.25931909) (53,0.26017008) (54,0.26064304) (55,0.25911685) (56,0.25847078) (57,0.25922198) (58,0.25535142) (59,0.25681434) (60,0.25479597)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,13.374) (2,13.834) (3,11.13) (4,10.552) (5,9.826) (6,10.026) (7,9.254) (8,8.036) (9,8.326) (10,9.076) (11,8.166) (12,7.092) (13,7.24) (14,7.94) (15,6.536) (16,6.252) (17,6.344) (18,6.06) (19,6.196) (20,5.666) (21,5.24) (22,5.356) (23,4.484) (24,4.556) (25,4.168) (26,4.222) (27,4.292) (28,3.73) (29,4.046) (30,3.958) (31,4.914) (32,3.546) (33,3.488) (34,3.608) (35,3.074) (36,3.476) (37,3.042) (38,2.834) (39,3.338) (40,2.624) (41,3.392) (42,2.164) (43,2.85) (44,3.14) (45,2.97) (46,2.26) (47,2.76) (48,2.146) (49,2.008) (50,3.034) (51,2.378) (52,3.082) (53,1.952) (54,1.9) (55,2.808) (56,1.792) (57,1.506) (58,1.598) (59,1.446) (60,1.724)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,14.016) (2,15.128) (3,11.584) (4,11.13) (5,10.48) (6,11.11) (7,9.658) (8,9.44) (9,9.294) (10,9.102) (11,9.126) (12,8.53) (13,7.904) (14,8.43) (15,7.722) (16,7.394) (17,7.308) (18,6.78) (19,7.036) (20,6.942) (21,6.42) (22,6.768) (23,6.164) (24,7.144) (25,5.806) (26,5.912) (27,5.356) (28,5.448) (29,5.596) (30,5.684) (31,7.914) (32,5.538) (33,5.26) (34,5.884) (35,5.196) (36,5.252) (37,6.398) (38,4.876) (39,5.418) (40,5.288) (41,5.38) (42,4.608) (43,4.6) (44,5.48) (45,4.98) (46,4.402) (47,4.1) (48,4.55) (49,4.564) (50,4.338) (51,4.46) (52,4.528) (53,4.212) (54,4.116) (55,3.942) (56,4.31) (57,3.922) (58,3.712) (59,3.766) (60,3.882)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,15.096) (2,15.178) (3,12.964) (4,13.086) (5,11.76) (6,11.826) (7,11.86) (8,11.858) (9,11.664) (10,11.924) (11,11.398) (12,11.554) (13,10.704) (14,12.418) (15,10.736) (16,9.856) (17,10.198) (18,10.658) (19,9.77) (20,9.966) (21,9.942) (22,10.456) (23,10.86) (24,10.048) (25,9.866) (26,9.824) (27,9.012) (28,8.858) (29,9.216) (30,9.218) (31,10.186) (32,9.364) (33,10.222) (34,10.136) (35,9.326) (36,9.554) (37,9.102) (38,8.772) (39,9.178) (40,9.374) (41,10.076) (42,8.992) (43,9.552) (44,8.758) (45,9.314) (46,8.56) (47,8.904) (48,10.098) (49,8.454) (50,9.41) (51,10.186) (52,9.454) (53,9.712) (54,8.792) (55,8.636) (56,8.99) (57,8.342) (58,8.116) (59,8.734) (60,9.214)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,14.82) (2,15.45) (3,13.41) (4,12.85) (5,12.53) (6,12.79) (7,12.29) (8,11.37) (9,11.79) (10,12.8) (11,11.63) (12,11.28) (13,11.21) (14,11.56) (15,11.02) (16,11.03) (17,10.94) (18,11.07) (19,11.11) (20,11.45) (21,10.72) (22,11.26) (23,10.72) (24,10.71) (25,10.45) (26,10.59) (27,10.73) (28,10.52) (29,10.74) (30,11.08) (31,10.92) (32,9.69) (33,10.56) (34,10.59) (35,10.48) (36,10.66) (37,10.29) (38,10.4) (39,11.15) (40,10.39) (41,10.74) (42,10.29) (43,10.73) (44,10.64) (45,11.48) (46,10.43) (47,10.82) (48,10.24) (49,10.52) (50,10.8) (51,10.65) (52,10.82) (53,10.59) (54,10.85) (55,11.23) (56,9.94) (57,10.59) (58,10.4) (59,10.49) (60,10.65)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,15.53) (2,16.97) (3,13.73) (4,13.58) (5,12.58) (6,13.45) (7,12.31) (8,12.25) (9,12.5) (10,12.42) (11,12.43) (12,11.9) (13,12.02) (14,11.94) (15,11.92) (16,11.7) (17,11.97) (18,11.03) (19,11.58) (20,11.1) (21,11.16) (22,11.44) (23,11.23) (24,12.31) (25,10.94) (26,11.17) (27,10.77) (28,10.48) (29,10.96) (30,11.06) (31,12.44) (32,11.13) (33,10.93) (34,11.15) (35,10.79) (36,11.37) (37,12.09) (38,11.08) (39,11.04) (40,10.93) (41,11.6) (42,10.42) (43,11.06) (44,11.21) (45,11.35) (46,11.12) (47,10.68) (48,10.7) (49,11.17) (50,10.97) (51,11.39) (52,11.39) (53,11.25) (54,10.94) (55,10.75) (56,11.06) (57,10.81) (58,10.75) (59,10.86) (60,10.87)};
+\addplot[POrange,dashdotted,line width=0.8pt,no marks] coordinates {(1,16.15) (2,16.88) (3,14.73) (4,15.16) (5,13.78) (6,13.74) (7,13.85) (8,14.15) (9,14.03) (10,14.52) (11,13.93) (12,14.39) (13,13.54) (14,14.69) (15,13.6) (16,12.62) (17,13.09) (18,13.64) (19,12.74) (20,13.34) (21,12.61) (22,13.56) (23,13.91) (24,13.47) (25,13.38) (26,13.09) (27,12.32) (28,11.93) (29,12.45) (30,12.12) (31,13.26) (32,12.65) (33,13.66) (34,13.13) (35,12.29) (36,12.97) (37,12.68) (38,12.19) (39,12.66) (40,12.67) (41,12.88) (42,12.55) (43,13.03) (44,12.31) (45,12.5) (46,12.38) (47,12.38) (48,13.53) (49,11.77) (50,12.59) (51,13.84) (52,12.86) (53,13.13) (54,12.45) (55,12.33) (56,12.37) (57,12.01) (58,11.86) (59,12.54) (60,12.78)};
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{0.5em}{\small \tikz[baseline=-.5ex]\draw[PBlue,solid,line width=.8pt] (0,0)--(.55,0);\ $\lambda=0$\quad \tikz[baseline=-.5ex]\draw[PGold,dashed,line width=.8pt] (0,0)--(.55,0);\ $\lambda=10^{-4}$\quad \tikz[baseline=-.5ex]\draw[POrange,dashdotted,line width=.8pt] (0,0)--(.55,0);\ $\lambda=10^{-3}$}
+\caption{L2 系数对训练数据损失、训练误差和测试误差的影响。}\label{fig:l2}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{L2 对比：固定轮次与验证选中模型的结果}
+\begin{tabular}{lrrr}\toprule
+L2 系数 & 第 60 轮训练误差 & 第 60 轮测试误差 & 最佳轮测试误差 \\\midrule
+$\lambda=0$ & 1.72\% & 10.65\% & 9.94\% \\
+$\lambda=10^{-4}$ & 3.88\% & 10.87\% & 11.16\% \\
+$\lambda=10^{-3}$ & 9.21\% & 12.78\% & 12.01\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}加入 L2 后，训练损失和训练误差保持在更高水平，且 $10^{-3}$ 的影响明显强于 $10^{-4}$。$\lambda=10^{-3}$ 时，第 60 轮训练误差为 9.21\%，测试误差为 12.78\%，相较无正则化的 1.72\% 和 10.65\% 均变差，说明在当前配置下约束过强，限制了有效拟合。$10^{-4}$ 的约束较温和，但最佳模型测试误差仍未优于无正则化组。L2 通过限制权重降低过拟合风险，并不保证任意系数都会提升泛化；其强度需要通过验证集选择。
+
+\question{附加题4：使用 Dropout，观察泛化表现}
+\textbf{实验设计与核心代码。}在大模型每个隐藏层的激活之后加入 $p=0.2$ 的 Dropout。训练时随机将 20\% 的激活置零，其余激活乘以 $1/(1-p)$；评估时关闭随机丢弃。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+layers.append(nn.Linear(previous_dim, hidden_dim))
+layers.append(activation_class())
+if dropout > 0.0:
+    layers.append(nn.Dropout(p=dropout))
+
+model.train()  # enable dropout while optimizing
+model.eval()   # disable dropout while evaluating
+\end{lstlisting}
+\end{minipage}\par
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练损失},xlabel={Epoch},ylabel={Loss},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.51550312) (2,0.38169283) (3,0.33962163) (4,0.30989741) (5,0.29115193) (6,0.27312917) (7,0.25953176) (8,0.24919729) (9,0.2344227) (10,0.22534941) (11,0.224728) (12,0.20569376) (13,0.20070807) (14,0.19180222) (15,0.18650532) (16,0.1780102) (17,0.17147738) (18,0.16529367) (19,0.15935038) (20,0.15464759) (21,0.14383508) (22,0.14870927) (23,0.13607471) (24,0.13745896) (25,0.1244959) (26,0.12537882) (27,0.12488627) (28,0.1176773) (29,0.11296221) (30,0.10831497) (31,0.11402691) (32,0.10345783) (33,0.10202664) (34,0.094418016) (35,0.097185397) (36,0.094364189) (37,0.088519056) (38,0.089944444) (39,0.081362372) (40,0.085308899) (41,0.086422908) (42,0.084791751) (43,0.074470283) (44,0.07620943) (45,0.074441671) (46,0.077278011) (47,0.073717595) (48,0.062298637) (49,0.064675676) (50,0.066431547) (51,0.071958783) (52,0.067975883) (53,0.06573707) (54,0.060476292) (55,0.066035317) (56,0.058331229) (57,0.063107919) (58,0.053821602) (59,0.062974206) (60,0.054182199)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,0.54618896) (2,0.41330969) (3,0.37452791) (4,0.35320098) (5,0.33489843) (6,0.31803901) (7,0.31001931) (8,0.3002906) (9,0.29179584) (10,0.28536359) (11,0.2793886) (12,0.27067966) (13,0.26996544) (14,0.26054511) (15,0.25737344) (16,0.24451296) (17,0.24666715) (18,0.24505846) (19,0.23659491) (20,0.24044527) (21,0.22998259) (22,0.23099045) (23,0.22604896) (24,0.22146933) (25,0.22170122) (26,0.21425207) (27,0.2105448) (28,0.21351333) (29,0.21397509) (30,0.21127943) (31,0.20749262) (32,0.20112052) (33,0.20368846) (34,0.19906489) (35,0.20650534) (36,0.19328704) (37,0.19605128) (38,0.19419334) (39,0.18716533) (40,0.18497185) (41,0.18898782) (42,0.18545442) (43,0.18546624) (44,0.182618) (45,0.18331972) (46,0.1805418) (47,0.18098871) (48,0.17667693) (49,0.17748383) (50,0.17331164) (51,0.17236069) (52,0.16792761) (53,0.17483967) (54,0.16927709) (55,0.16969705) (56,0.17339081) (57,0.16846141) (58,0.16293587) (59,0.16914063) (60,0.16126605)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,13.374) (2,13.834) (3,11.13) (4,10.552) (5,9.826) (6,10.026) (7,9.254) (8,8.036) (9,8.326) (10,9.076) (11,8.166) (12,7.092) (13,7.24) (14,7.94) (15,6.536) (16,6.252) (17,6.344) (18,6.06) (19,6.196) (20,5.666) (21,5.24) (22,5.356) (23,4.484) (24,4.556) (25,4.168) (26,4.222) (27,4.292) (28,3.73) (29,4.046) (30,3.958) (31,4.914) (32,3.546) (33,3.488) (34,3.608) (35,3.074) (36,3.476) (37,3.042) (38,2.834) (39,3.338) (40,2.624) (41,3.392) (42,2.164) (43,2.85) (44,3.14) (45,2.97) (46,2.26) (47,2.76) (48,2.146) (49,2.008) (50,3.034) (51,2.378) (52,3.082) (53,1.952) (54,1.9) (55,2.808) (56,1.792) (57,1.506) (58,1.598) (59,1.446) (60,1.724)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,14.588) (2,13.496) (3,12.122) (4,11.632) (5,10.9) (6,11.57) (7,10.376) (8,9.084) (9,10.414) (10,10.296) (11,9.482) (12,9.506) (13,9.15) (14,8.218) (15,8.06) (16,7.74) (17,8.216) (18,8.31) (19,7.1) (20,7.042) (21,6.958) (22,7.128) (23,7.366) (24,6.85) (25,6.742) (26,6.56) (27,6.692) (28,6.666) (29,6.442) (30,6.42) (31,6.74) (32,5.872) (33,6.25) (34,5.826) (35,5.992) (36,6.268) (37,5.702) (38,5.552) (39,5.662) (40,5.286) (41,6.088) (42,5.44) (43,5.15) (44,5.08) (45,5.35) (46,4.978) (47,4.792) (48,5.156) (49,4.728) (50,4.78) (51,4.46) (52,4.984) (53,4.566) (54,4.856) (55,4.416) (56,4.608) (57,4.204) (58,4.61) (59,4.396) (60,4.292)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,14.82) (2,15.45) (3,13.41) (4,12.85) (5,12.53) (6,12.79) (7,12.29) (8,11.37) (9,11.79) (10,12.8) (11,11.63) (12,11.28) (13,11.21) (14,11.56) (15,11.02) (16,11.03) (17,10.94) (18,11.07) (19,11.11) (20,11.45) (21,10.72) (22,11.26) (23,10.72) (24,10.71) (25,10.45) (26,10.59) (27,10.73) (28,10.52) (29,10.74) (30,11.08) (31,10.92) (32,9.69) (33,10.56) (34,10.59) (35,10.48) (36,10.66) (37,10.29) (38,10.4) (39,11.15) (40,10.39) (41,10.74) (42,10.29) (43,10.73) (44,10.64) (45,11.48) (46,10.43) (47,10.82) (48,10.24) (49,10.52) (50,10.8) (51,10.65) (52,10.82) (53,10.59) (54,10.85) (55,11.23) (56,9.94) (57,10.59) (58,10.4) (59,10.49) (60,10.65)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,15.5) (2,15.03) (3,13.9) (4,13.81) (5,12.88) (6,13.62) (7,12.4) (8,11.66) (9,12.93) (10,13.3) (11,12.43) (12,12.47) (13,12.28) (14,11.19) (15,11.36) (16,11.24) (17,11.66) (18,12.05) (19,11.03) (20,11.1) (21,10.75) (22,11.03) (23,12.01) (24,11.24) (25,10.82) (26,11.04) (27,11.11) (28,10.74) (29,11.1) (30,10.97) (31,11.04) (32,10.61) (33,10.69) (34,10.76) (35,11.08) (36,11.26) (37,11.04) (38,10.29) (39,10.78) (40,10.47) (41,11.14) (42,10.4) (43,10.41) (44,10.52) (45,10.53) (46,10.72) (47,10.28) (48,10.41) (49,10.18) (50,10.32) (51,9.88) (52,10.68) (53,10.01) (54,10.73) (55,10.42) (56,10.52) (57,10.31) (58,10.72) (59,10.66) (60,10.11)};
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{0.5em}{\small \tikz[baseline=-.5ex]\draw[PBlue,solid,line width=.8pt] (0,0)--(.55,0);\ 无 Dropout\quad \tikz[baseline=-.5ex]\draw[PGold,dashed,line width=.8pt] (0,0)--(.55,0);\ Dropout ($p=0.2$)}
+\caption{Dropout 对比。训练损失在启用 Dropout 时记录；训练误差和测试误差均在评估模式下计算。}\label{fig:dropout}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{Dropout 对比结果}
+\begin{tabular}{lrrr}\toprule
+设置 & 第 60 轮训练误差 & 第 60 轮测试误差 & 最佳轮测试误差 \\\midrule
+无 Dropout & 1.72\% & 10.65\% & 9.94\% \\
+Dropout ($p=0.2$) & 4.29\% & 10.11\% & 9.88\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}Dropout 不增加可学习参数，两组均为 2,383,370 个参数。加入 Dropout 后，训练损失下降较慢，最终训练误差由 1.72\% 增至 4.29\%，测试误差由 10.65\% 降至 10.11\%；训练与测试的差距由 8.93 缩小至 5.82 个百分点。随机丢弃抑制了模型对部分隐藏单元的过度依赖，本次实验中较弱的训练拟合对应了略好的末轮测试表现。
+
+按验证误差选择模型时，Dropout 组测试误差为 9.88\%，无正则化组为 9.94\%，只相差 6 个测试样本。该结果支持“本次运行中 Dropout 有一定改善”，还不足以说明其优势稳定或显著。
+
+\question{附加题5：使用 Batch Normalization，观察误差}
+\textbf{实验设计与核心代码。}在大模型的每个隐藏层中，将 BN 放在全连接层之后、ReLU 之前。对每个特征，训练时按批次计算
+\begin{equation}
+\hat{x}=\frac{x-\mu_B}{\sqrt{\sigma_B^2+\epsilon}},\qquad
+y=\gamma\hat{x}+\beta.
+\end{equation}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+layers.append(nn.Linear(previous_dim, hidden_dim))
+if batch_norm:
+    layers.append(nn.BatchNorm1d(hidden_dim))
+layers.append(activation_class())
+\end{lstlisting}
+\end{minipage}\par
+训练阶段使用批次统计量并更新运行均值、方差，评估阶段使用保存的运行统计量。因此，评估前的 \texttt{model.eval()} 对 BN 同样必要。BN 的可学习参数是每个特征的缩放 $\gamma$ 与平移 $\beta$，新增 $2\times(1024+1024+512)=5,120$ 个参数，总计 2,388,490；运行均值和方差属于缓冲量，不计入可学习参数。
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练损失},xlabel={Epoch},ylabel={Loss},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,0.51550312) (2,0.38169283) (3,0.33962163) (4,0.30989741) (5,0.29115193) (6,0.27312917) (7,0.25953176) (8,0.24919729) (9,0.2344227) (10,0.22534941) (11,0.224728) (12,0.20569376) (13,0.20070807) (14,0.19180222) (15,0.18650532) (16,0.1780102) (17,0.17147738) (18,0.16529367) (19,0.15935038) (20,0.15464759) (21,0.14383508) (22,0.14870927) (23,0.13607471) (24,0.13745896) (25,0.1244959) (26,0.12537882) (27,0.12488627) (28,0.1176773) (29,0.11296221) (30,0.10831497) (31,0.11402691) (32,0.10345783) (33,0.10202664) (34,0.094418016) (35,0.097185397) (36,0.094364189) (37,0.088519056) (38,0.089944444) (39,0.081362372) (40,0.085308899) (41,0.086422908) (42,0.084791751) (43,0.074470283) (44,0.07620943) (45,0.074441671) (46,0.077278011) (47,0.073717595) (48,0.062298637) (49,0.064675676) (50,0.066431547) (51,0.071958783) (52,0.067975883) (53,0.06573707) (54,0.060476292) (55,0.066035317) (56,0.058331229) (57,0.063107919) (58,0.053821602) (59,0.062974206) (60,0.054182199)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,0.46044072) (2,0.36032365) (3,0.31996592) (4,0.29400859) (5,0.26863535) (6,0.25129945) (7,0.23437704) (8,0.21913501) (9,0.20282451) (10,0.18861961) (11,0.17841629) (12,0.16191529) (13,0.15147689) (14,0.14279519) (15,0.13233839) (16,0.12529754) (17,0.11455767) (18,0.10908827) (19,0.10324127) (20,0.096346761) (21,0.093986972) (22,0.087882087) (23,0.080421372) (24,0.077504445) (25,0.070528144) (26,0.070463362) (27,0.068010083) (28,0.062474626) (29,0.061766513) (30,0.060209888) (31,0.053440593) (32,0.054889698) (33,0.050918958) (34,0.048235855) (35,0.047978674) (36,0.045929156) (37,0.043776002) (38,0.045646079) (39,0.041221016) (40,0.038355917) (41,0.039329002) (42,0.036271589) (43,0.038297363) (44,0.034996775) (45,0.03457351) (46,0.032554369) (47,0.03268558) (48,0.035121066) (49,0.029184355) (50,0.030542666) (51,0.030644622) (52,0.026588081) (53,0.028917323) (54,0.028739101) (55,0.029512277) (56,0.02479799) (57,0.025459436) (58,0.027670108) (59,0.024478245) (60,0.025244805)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={训练误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,13.374) (2,13.834) (3,11.13) (4,10.552) (5,9.826) (6,10.026) (7,9.254) (8,8.036) (9,8.326) (10,9.076) (11,8.166) (12,7.092) (13,7.24) (14,7.94) (15,6.536) (16,6.252) (17,6.344) (18,6.06) (19,6.196) (20,5.666) (21,5.24) (22,5.356) (23,4.484) (24,4.556) (25,4.168) (26,4.222) (27,4.292) (28,3.73) (29,4.046) (30,3.958) (31,4.914) (32,3.546) (33,3.488) (34,3.608) (35,3.074) (36,3.476) (37,3.042) (38,2.834) (39,3.338) (40,2.624) (41,3.392) (42,2.164) (43,2.85) (44,3.14) (45,2.97) (46,2.26) (47,2.76) (48,2.146) (49,2.008) (50,3.034) (51,2.378) (52,3.082) (53,1.952) (54,1.9) (55,2.808) (56,1.792) (57,1.506) (58,1.598) (59,1.446) (60,1.724)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,12.988) (2,13.238) (3,9.854) (4,9.248) (5,8.822) (6,9.134) (7,7.154) (8,7.732) (9,8.436) (10,6.218) (11,5.69) (12,4.836) (13,4.758) (14,4.54) (15,4.02) (16,3.966) (17,4.312) (18,3.256) (19,2.68) (20,2.78) (21,2.496) (22,2.04) (23,2.362) (24,2.224) (25,1.934) (26,1.676) (27,2.532) (28,1.446) (29,1.964) (30,1.478) (31,1.772) (32,1.636) (33,1.69) (34,1.898) (35,1.314) (36,1.778) (37,2.07) (38,2.086) (39,1.42) (40,1.116) (41,1.104) (42,2.194) (43,1.082) (44,0.898) (45,0.742) (46,0.804) (47,1.55) (48,0.636) (49,0.782) (50,0.976) (51,0.552) (52,0.986) (53,0.448) (54,1.234) (55,0.55) (56,0.89) (57,0.712) (58,0.334) (59,0.342) (60,0.642)};
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.325\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=4.8cm,title={测试误差},xlabel={Epoch},ylabel={误差（\%）},legend columns=2,width=5.45cm,xmin=1,xmax=60,ymin=0,xtick={1,20,40,60},ymax=18]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(1,14.82) (2,15.45) (3,13.41) (4,12.85) (5,12.53) (6,12.79) (7,12.29) (8,11.37) (9,11.79) (10,12.8) (11,11.63) (12,11.28) (13,11.21) (14,11.56) (15,11.02) (16,11.03) (17,10.94) (18,11.07) (19,11.11) (20,11.45) (21,10.72) (22,11.26) (23,10.72) (24,10.71) (25,10.45) (26,10.59) (27,10.73) (28,10.52) (29,10.74) (30,11.08) (31,10.92) (32,9.69) (33,10.56) (34,10.59) (35,10.48) (36,10.66) (37,10.29) (38,10.4) (39,11.15) (40,10.39) (41,10.74) (42,10.29) (43,10.73) (44,10.64) (45,11.48) (46,10.43) (47,10.82) (48,10.24) (49,10.52) (50,10.8) (51,10.65) (52,10.82) (53,10.59) (54,10.85) (55,11.23) (56,9.94) (57,10.59) (58,10.4) (59,10.49) (60,10.65)};
+\addplot[PGold,dashed,line width=0.8pt,no marks] coordinates {(1,14.65) (2,15.56) (3,12.39) (4,12.55) (5,12.37) (6,12.56) (7,11.34) (8,11.99) (9,13.35) (10,11.28) (11,11.23) (12,10.7) (13,10.88) (14,10.42) (15,10.91) (16,10.87) (17,11.53) (18,10.95) (19,10.62) (20,10.85) (21,10.24) (22,10.27) (23,10.47) (24,10.76) (25,10.8) (26,10.1) (27,11.15) (28,10.45) (29,10.47) (30,10.57) (31,10.75) (32,10.35) (33,10.61) (34,10.56) (35,10.63) (36,10.87) (37,11.23) (38,10.82) (39,10.75) (40,10.35) (41,10.2) (42,11.46) (43,10.39) (44,10.27) (45,10.47) (46,10.21) (47,10.86) (48,10.26) (49,10.42) (50,10.2) (51,10.23) (52,10.03) (53,10.16) (54,11.16) (55,10.03) (56,10.14) (57,10.49) (58,10.22) (59,10.1) (60,10.1)};
+\end{axis}\end{tikzpicture}\end{minipage}\par\vspace{0.5em}{\small \tikz[baseline=-.5ex]\draw[PBlue,solid,line width=.8pt] (0,0)--(.55,0);\ 无 BN\quad \tikz[baseline=-.5ex]\draw[PGold,dashed,line width=.8pt] (0,0)--(.55,0);\ Batch Normalization}
+\caption{BN 对训练损失、训练误差和测试误差的影响。}\label{fig:bn}
+\end{figure}
+\begin{table}[H]\centering\small
+\caption{Batch Normalization 对比结果}
+\begin{tabular}{lrrr}\toprule
+设置 & 第 60 轮训练误差 & 第 60 轮测试误差 & 最佳轮测试误差 \\\midrule
+无 BN & 1.72\% & 10.65\% & 9.94\% \\
+Batch Normalization & 0.64\% & 10.10\% & 10.03\% \\
+
+\bottomrule\end{tabular}
+\end{table}
+\textbf{结果与分析。}BN 组第 60 轮训练误差为 0.64\%，低于无 BN 组的 1.72\%，测试误差为 10.10\%，也低于无 BN 组的 10.65\%。它在本次运行中提高了训练拟合程度，并改善了末轮测试表现，作用方式与 L2、Dropout 限制拟合的现象不同。
+
+BN 组在第 52 轮取得最低验证误差 8.98\%，对应测试误差为 10.03\%。若比较各组验证选出的模型，无 BN 组的测试误差 9.94\% 反而略低。这与“第 60 轮 BN 更好”并不矛盾，因为比较的模型轮次不同。BN 也没有消除训练与测试之间的差距，因此不能把归一化等同于解决过拟合。
+
+\clearpage
+\question{附加题6：训练神经网络解决 XOR 问题}
+\textbf{实验设计与核心代码。}XOR 在两个输入相同时输出 0，不同时输出 1。四个点不能由一条直线分开，单个线性分类器无法完成该任务。按照课件示例构建 $2\to5\to1$ 网络，隐藏层使用 ReLU，输出层为线性层，采用 MSE 和 SGD；随机种子为 1，学习率为 0.1，全批量更新 5,000 次。
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lc1 = nn.Linear(2, 5)
+        self.lc2 = nn.Linear(5, 1)
+
+    def forward(self, x):
+        return self.lc2(F.relu(self.lc1(x)))
+
+x = torch.tensor([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
+y = torch.tensor([[0.], [1.], [1.], [0.]])
+model = Model()
+criterion = nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+for i in range(5000):
+    optimizer.zero_grad()
+    loss = criterion(model(x), y)
+    loss.backward()
+    optimizer.step()
+\end{lstlisting}
+\end{minipage}\par
+网络共有 $(2+1)\times5+(5+1)\times1=21$ 个参数。以输出大于 0.5 判为类别 1，结果如下：
+\begin{table}[H]\centering\small
+\caption{XOR 四种输入的训练结果}
+\begin{tabular}{rrrrr}\toprule
+$x_1$ & $x_2$ & 目标值 & 网络输出 & 判定类别 \\\midrule
+0 & 0 & 0 & 0.000000517 & 0 \\
+0 & 1 & 1 & 0.999999285 & 1 \\
+1 & 0 & 1 & 0.999999523 & 1 \\
+1 & 1 & 0 & 0.000000670 & 0 \\
+
+\bottomrule\end{tabular}
+\end{table}
+\begin{figure}[H]\centering
+\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}\begin{axis}[reportaxis,height=5.6cm,title={XOR 训练损失},xlabel={Epoch},ylabel={MSE},legend columns=2,xlabel={SGD 更新次数},ymode=log,xmin=0,xmax=5000,ymin=1e-14,ymax=1,xtick={0,1000,2000,3000,4000,5000}]
+\addplot[PBlue,solid,line width=0.8pt,no marks] coordinates {(0,0.67225099) (10,0.20387337) (20,0.17841995) (30,0.15575475) (40,0.1282142) (50,0.10014553) (60,0.074415311) (70,0.051268924) (80,0.033345066) (90,0.020270336) (100,0.011859952) (110,0.0068879183) (120,0.0038947589) (130,0.0021222834) (140,0.0011753454) (150,0.00064264797) (160,0.00034258651) (170,0.00018405842) (180,9.7453463e-05) (190,5.0956936e-05) (200,2.7373191e-05) (210,1.4580681e-05) (220,7.5265248e-06) (230,4.1253661e-06) (240,2.1961573e-06) (250,1.1253242e-06) (260,5.9625205e-07) (270,3.1892094e-07) (280,1.6288431e-07) (290,8.7749797e-08) (300,4.6956046e-08) (310,2.3720894e-08) (320,1.2574207e-08) (330,6.8555206e-09) (340,3.5407304e-09) (350,1.8599311e-09) (360,9.6067865e-10) (370,5.0158844e-10) (380,2.7042404e-10) (390,1.4061644e-10) (400,7.2328872e-11) (410,3.9163554e-11) (420,1.9955157e-11) (430,1.0555691e-11) (440,5.982867e-12) (450,2.9566167e-12) (460,1.501702e-12) (470,8.7264267e-13) (480,5.7576155e-13) (490,4.861118e-13) (500,4.133228e-13) (510,4.2999919e-13) (520,4.2713294e-13) (530,4.1285307e-13) (540,4.0960445e-13) (550,3.8939495e-13) (560,3.6919626e-13) (570,3.6404999e-13) (580,3.7174839e-13) (590,3.689019e-13) (600,3.6748466e-13) (610,3.6813925e-13) (620,3.6165054e-13) (630,3.6086352e-13) (640,3.6453945e-13) (650,3.6518745e-13) (660,3.6513473e-13) (670,3.6555183e-13) (680,3.6559389e-13) (690,3.6267373e-13) (700,3.6269663e-13) (710,3.6717591e-13) (720,3.6871987e-13) (730,3.6966366e-13) (740,3.6319976e-13) (750,3.628378e-13) (760,3.624606e-13) (770,3.6248603e-13) (780,3.6708939e-13) (790,3.6539299e-13) (800,3.65245e-13) (810,3.6493578e-13) (820,3.6556318e-13) (830,3.6564989e-13) (840,3.6668726e-13) (850,3.6493405e-13) (860,3.6382645e-13) (870,3.6518713e-13) (880,3.648188e-13) (890,3.6525118e-13) (900,3.6216332e-13) (910,3.622468e-13) (920,3.6663112e-13) (930,3.6684788e-13) (940,3.6893915e-13) (950,3.6935911e-13) (960,3.630513e-13) (970,3.6264671e-13) (980,3.6302013e-13) (990,3.6149897e-13) (1000,3.6540565e-13) (1010,3.6552684e-13) (1020,3.6752104e-13) (1030,3.6786188e-13) (1040,3.6875386e-13) (1050,3.6217446e-13) (1060,3.6229247e-13) (1070,3.6350027e-13) (1080,3.6498259e-13) (1090,3.6467048e-13) (1100,3.6666107e-13) (1110,3.6676193e-13) (1120,3.6852054e-13) (1130,3.6233272e-13) (1140,3.6205365e-13) (1150,3.6272564e-13) (1160,3.6505683e-13) (1170,3.6432261e-13) (1180,3.6437089e-13) (1190,3.6581469e-13) (1200,3.6713173e-13) (1210,3.679442e-13) (1220,3.6173365e-13) (1230,3.6177493e-13) (1240,3.6737063e-13) (1250,3.6394303e-13) (1260,3.6375243e-13) (1270,3.6569532e-13) (1280,3.6619573e-13) (1290,3.6633389e-13) (1300,3.6723708e-13) (1310,3.6557609e-13) (1320,3.6564618e-13) (1330,3.6583063e-13) (1340,3.6320903e-13) (1350,3.6505635e-13) (1360,3.6539836e-13) (1370,3.6510768e-13) (1380,3.6586169e-13) (1390,3.6582749e-13) (1400,3.6505271e-13) (1410,3.6493061e-13) (1420,3.6298362e-13) (1430,3.6450918e-13) (1440,3.6467135e-13) (1450,3.6419736e-13) (1460,3.6580797e-13) (1470,3.6712191e-13) (1480,3.6486507e-13) (1490,3.6392341e-13) (1500,3.6492684e-13) (1510,3.6254723e-13) (1520,3.6410553e-13) (1530,3.636104e-13) (1540,3.6459136e-13) (1550,3.6554773e-13) (1560,3.704477e-13) (1570,3.6374996e-13) (1580,3.643675e-13) (1590,3.6465218e-13) (1600,3.6368461e-13) (1610,3.6284663e-13) (1620,3.6352109e-13) (1630,3.6872418e-13) (1640,3.6871922e-13) (1650,3.694671e-13) (1660,3.638067e-13) (1670,3.6389766e-13) (1680,3.6583985e-13) (1690,3.6239967e-13) (1700,3.623041e-13) (1710,3.6761929e-13) (1720,3.6743354e-13) (1730,3.6783358e-13) (1740,3.6864045e-13) (1750,3.6253146e-13) (1760,3.6352919e-13) (1770,3.6254772e-13) (1780,3.624493e-13) (1790,3.6686244e-13) (1800,3.6626824e-13) (1810,3.6660527e-13) (1820,3.6794087e-13) (1830,3.6243854e-13) (1840,3.628565e-13) (1850,3.6496603e-13) (1860,3.621251e-13) (1870,3.6615117e-13) (1880,3.6534976e-13) (1890,3.6564588e-13) (1900,3.6681975e-13) (1910,3.680372e-13) (1920,3.6158774e-13) (1930,3.6284642e-13) (1940,3.6375766e-13) (1950,3.6567578e-13) (1960,3.646849e-13) (1970,3.6484054e-13) (1980,3.6486832e-13) (1990,3.6647416e-13) (2000,3.6718556e-13) (2010,3.625436e-13) (2020,3.6276028e-13) (2030,3.6773877e-13) (2040,3.6417457e-13) (2050,3.6427119e-13) (2060,3.6484531e-13) (2070,3.653165e-13) (2080,3.6557484e-13) (2090,3.6250571e-13) (2100,3.6239623e-13) (2110,3.6621517e-13) (2120,3.6621081e-13) (2130,3.6419977e-13) (2140,3.6413892e-13) (2150,3.6428244e-13) (2160,3.6427271e-13) (2170,3.6652896e-13) (2180,3.6622425e-13) (2190,3.6535353e-13) (2200,3.6494476e-13) (2210,3.6506339e-13) (2220,3.6253091e-13) (2230,3.6335968e-13) (2240,3.6332249e-13) (2250,3.6524841e-13) (2260,3.7025103e-13) (2270,3.6482929e-13) (2280,3.6431426e-13) (2290,3.6419039e-13) (2300,3.6430955e-13) (2310,3.6119309e-13) (2320,3.6315672e-13) (2330,3.6419034e-13) (2340,3.6881322e-13) (2350,3.6878991e-13) (2360,3.6406807e-13) (2370,3.6356917e-13) (2380,3.6361241e-13) (2390,3.6107573e-13) (2400,3.6322258e-13) (2410,3.6344978e-13) (2420,3.6859177e-13) (2430,3.6884273e-13) (2440,3.6959455e-13) (2450,3.631642e-13) (2460,3.6291906e-13) (2470,3.6255284e-13) (2480,3.6237891e-13) (2490,3.6273027e-13) (2500,3.668166e-13) (2510,3.6732577e-13) (2520,3.6803514e-13) (2530,3.6870368e-13) (2540,3.6248581e-13) (2550,3.6190988e-13) (2560,3.6359595e-13) (2570,3.6612846e-13) (2580,3.6582808e-13) (2590,3.6547507e-13) (2600,3.6676573e-13) (2610,3.6733732e-13) (2620,3.6816139e-13) (2630,3.6175292e-13) (2640,3.6366583e-13) (2650,3.6828738e-13) (2660,3.6459578e-13) (2670,3.6411829e-13) (2680,3.6543785e-13) (2690,3.6599245e-13) (2700,3.6776973e-13) (2710,3.6179322e-13) (2720,3.6303903e-13) (2730,3.6735017e-13) (2740,3.66747e-13) (2750,3.6407899e-13) (2760,3.647193e-13) (2770,3.6496221e-13) (2780,3.6638623e-13) (2790,3.6726975e-13) (2800,3.6265289e-13) (2810,3.6661529e-13) (2820,3.6581944e-13) (2830,3.6372085e-13) (2840,3.6349379e-13) (2850,3.6341486e-13) (2860,3.6325177e-13) (2870,3.6364526e-13) (2880,3.6746601e-13) (2890,3.6608797e-13) (2900,3.651916e-13) (2910,3.6551746e-13) (2920,3.6297742e-13) (2930,3.6281012e-13) (2940,3.6243968e-13) (2950,3.6500561e-13) (2960,3.6620208e-13) (2970,3.7181711e-13) (2980,3.6501872e-13) (2990,3.6509882e-13) (3000,3.6506193e-13) (3010,3.6232061e-13) (3020,3.6178813e-13) (3030,3.6428505e-13) (3040,3.6927983e-13) (3050,3.6895346e-13) (3060,3.6986627e-13) (3070,3.6421465e-13) (3080,3.6434115e-13) (3090,3.6210748e-13) (3100,3.6139546e-13) (3110,3.6348702e-13) (3120,3.6822533e-13) (3130,3.6789126e-13) (3140,3.6968237e-13) (3150,3.6398597e-13) (3160,3.6367155e-13) (3170,3.6442954e-13) (3180,3.614823e-13) (3190,3.6287949e-13) (3200,3.6728961e-13) (3210,3.6651696e-13) (3220,3.6774763e-13) (3230,3.6940026e-13) (3240,3.6321884e-13) (3250,3.6305513e-13) (3260,3.6349797e-13) (3270,3.6246792e-13) (3280,3.6638447e-13) (3290,3.6562309e-13) (3300,3.6583399e-13) (3310,3.6706971e-13) (3320,3.6830451e-13) (3330,3.6250836e-13) (3340,3.6245917e-13) (3350,3.645867e-13) (3360,3.6589915e-13) (3370,3.6493863e-13) (3380,3.6581854e-13) (3390,3.6591157e-13) (3400,3.6681601e-13) (3410,3.6171093e-13) (3420,3.6148818e-13) (3430,3.6365382e-13) (3440,3.6561607e-13) (3450,3.6499081e-13) (3460,3.648774e-13) (3470,3.648529e-13) (3480,3.6549989e-13) (3490,3.655328e-13) (3500,3.6119911e-13) (3510,3.6297148e-13) (3520,3.6771378e-13) (3530,3.6463709e-13) (3540,3.6431996e-13) (3550,3.6406579e-13) (3560,3.643537e-13) (3570,3.6539313e-13) (3580,3.666405e-13) (3590,3.6232172e-13) (3600,3.6610526e-13) (3610,3.6620362e-13) (3620,3.6376631e-13) (3630,3.6359693e-13) (3640,3.6420644e-13) (3650,3.6425672e-13) (3660,3.6504954e-13) (3670,3.7247722e-13) (3680,3.6523063e-13) (3690,3.6561818e-13) (3700,3.6357527e-13) (3710,3.6306185e-13) (3720,3.6351049e-13) (3730,3.6328481e-13) (3740,3.6547962e-13) (3750,3.6778e-13) (3760,3.660833e-13) (3770,3.6555166e-13) (3780,3.6595277e-13) (3790,3.6302859e-13) (3800,3.6285493e-13) (3810,3.6320198e-13) (3820,3.65301e-13) (3830,3.6625412e-13) (3840,3.6624664e-13) (3850,3.6524218e-13) (3860,3.6512433e-13) (3870,3.6269349e-13) (3880,3.6238607e-13) (3890,3.6244328e-13) (3900,3.6435492e-13) (3910,3.6940706e-13) (3920,3.6918916e-13) (3930,3.6433587e-13) (3940,3.6444697e-13) (3950,3.6476307e-13) (3960,3.6245819e-13) (3970,3.6187053e-13) (3980,3.635132e-13) (3990,3.6789479e-13) (4000,3.6851864e-13) (4010,3.6974796e-13) (4020,3.6392542e-13) (4030,3.6434327e-13) (4040,3.6452487e-13) (4050,3.6141161e-13) (4060,3.6285054e-13) (4070,3.6698834e-13) (4080,3.675492e-13) (4090,3.681093e-13) (4100,3.6860565e-13) (4110,3.6272572e-13) (4120,3.6340101e-13) (4130,3.6358172e-13) (4140,3.6239544e-13) (4150,3.6640683e-13) (4160,3.6646551e-13) (4170,3.6697029e-13) (4180,3.6746889e-13) (4190,3.6278684e-13) (4200,3.630239e-13) (4210,3.6275551e-13) (4220,3.6251519e-13) (4230,3.6640111e-13) (4240,3.6565952e-13) (4250,3.6589205e-13) (4260,3.6690648e-13) (4270,3.6822872e-13) (4280,3.6240417e-13) (4290,3.6206254e-13) (4300,3.6454672e-13) (4310,3.6598914e-13) (4320,3.649618e-13) (4330,3.6481557e-13) (4340,3.6561642e-13) (4350,3.668043e-13) (4360,3.6718016e-13) (4370,3.6097023e-13) (4380,3.6677982e-13) (4390,3.6659375e-13) (4400,3.6431714e-13) (4410,3.6430724e-13) (4420,3.6485347e-13) (4430,3.6531352e-13) (4440,3.6556416e-13) (4450,3.6828418e-13) (4460,3.6618739e-13) (4470,3.6602806e-13) (4480,3.6645803e-13) (4490,3.6425992e-13) (4500,3.6415695e-13) (4510,3.6429041e-13) (4520,3.6427724e-13) (4530,3.6660578e-13) (4540,3.6623731e-13) (4550,3.6531317e-13) (4560,3.6519697e-13) (4570,3.6505803e-13) (4580,3.6287556e-13) (4590,3.6353808e-13) (4600,3.6335003e-13) (4610,3.6530886e-13) (4620,3.7023816e-13) (4630,3.6501618e-13) (4640,3.6441588e-13) (4650,3.6420254e-13) (4660,3.6201779e-13) (4670,3.6139223e-13) (4680,3.6241122e-13) (4690,3.6438848e-13) (4700,3.701451e-13) (4710,3.7057252e-13) (4720,3.6396163e-13) (4730,3.6353657e-13) (4740,3.6399895e-13) (4750,3.6150049e-13) (4760,3.6183285e-13) (4770,3.6424238e-13) (4780,3.6888407e-13) (4790,3.6880343e-13) (4800,3.6957584e-13) (4810,3.6303396e-13) (4820,3.6296909e-13) (4830,3.6335618e-13) (4840,3.6096235e-13) (4850,3.6680823e-13) (4860,3.6651056e-13) (4870,3.6740443e-13) (4880,3.6806956e-13) (4890,3.6872426e-13) (4900,3.6244868e-13) (4910,3.6232673e-13) (4920,3.6462836e-13) (4930,3.6610076e-13) (4940,3.6511508e-13) (4950,3.6507058e-13) (4960,3.6653032e-13) (4970,3.6733003e-13) (4980,3.6271103e-13) (4990,3.6201974e-13) (5000,3.6372278e-13)};
+\addlegendentry{四样本 MSE}
+\end{axis}\end{tikzpicture}\end{minipage}\hfill\begin{minipage}[t]{0.49\textwidth}\vspace{0pt}\centering\begin{tikzpicture}[x=3.25cm,y=3.25cm,font=\scriptsize]\fill[PBlue!12] (-.25,-.25) rectangle (1.25,1.25);\fill[PGold!22] (0.27500,-0.25000) rectangle (1.25000,-0.21250);\fill[PGold!22] (0.31250,-0.21250) rectangle (1.25000,-0.17500);\fill[PGold!22] (0.35000,-0.17500) rectangle (1.25000,-0.13750);\fill[PGold!22] (0.38750,-0.13750) rectangle (1.25000,-0.10000);\fill[PGold!22] (0.42500,-0.10000) rectangle (1.25000,-0.06250);\fill[PGold!22] (0.46250,-0.06250) rectangle (1.25000,-0.02500);\fill[PGold!22] (0.50000,-0.02500) rectangle (1.25000,0.01250);\fill[PGold!22] (0.53750,0.01250) rectangle (1.25000,0.05000);\fill[PGold!22] (0.57500,0.05000) rectangle (1.25000,0.08750);\fill[PGold!22] (0.61250,0.08750) rectangle (1.25000,0.12500);\fill[PGold!22] (0.65000,0.12500) rectangle (1.25000,0.16250);\fill[PGold!22] (0.68750,0.16250) rectangle (1.25000,0.20000);\fill[PGold!22] (0.72500,0.20000) rectangle (1.25000,0.23750);\fill[PGold!22] (0.76250,0.23750) rectangle (1.25000,0.27500);\fill[PGold!22] (-0.25000,0.27500) rectangle (-0.21250,0.31250);\fill[PGold!22] (0.80000,0.27500) rectangle (1.25000,0.31250);\fill[PGold!22] (-0.25000,0.31250) rectangle (-0.17500,0.35000);\fill[PGold!22] (0.83750,0.31250) rectangle (1.25000,0.35000);\fill[PGold!22] (-0.25000,0.35000) rectangle (-0.13750,0.38750);\fill[PGold!22] (0.87500,0.35000) rectangle (1.25000,0.38750);\fill[PGold!22] (-0.25000,0.38750) rectangle (-0.10000,0.42500);\fill[PGold!22] (0.91250,0.38750) rectangle (1.25000,0.42500);\fill[PGold!22] (-0.25000,0.42500) rectangle (-0.06250,0.46250);\fill[PGold!22] (0.95000,0.42500) rectangle (1.25000,0.46250);\fill[PGold!22] (-0.25000,0.46250) rectangle (-0.02500,0.50000);\fill[PGold!22] (0.98750,0.46250) rectangle (1.25000,0.50000);\fill[PGold!22] (-0.25000,0.50000) rectangle (0.01250,0.53750);\fill[PGold!22] (1.02500,0.50000) rectangle (1.25000,0.53750);\fill[PGold!22] (-0.25000,0.53750) rectangle (0.05000,0.57500);\fill[PGold!22] (1.06250,0.53750) rectangle (1.25000,0.57500);\fill[PGold!22] (-0.25000,0.57500) rectangle (0.08750,0.61250);\fill[PGold!22] (1.10000,0.57500) rectangle (1.25000,0.61250);\fill[PGold!22] (-0.25000,0.61250) rectangle (0.12500,0.65000);\fill[PGold!22] (1.13750,0.61250) rectangle (1.25000,0.65000);\fill[PGold!22] (-0.25000,0.65000) rectangle (0.16250,0.68750);\fill[PGold!22] (1.17500,0.65000) rectangle (1.25000,0.68750);\fill[PGold!22] (-0.25000,0.68750) rectangle (0.20000,0.72500);\fill[PGold!22] (1.21250,0.68750) rectangle (1.25000,0.72500);\fill[PGold!22] (-0.25000,0.72500) rectangle (0.23750,0.76250);\fill[PGold!22] (-0.25000,0.76250) rectangle (0.27500,0.80000);\fill[PGold!22] (-0.25000,0.80000) rectangle (0.31250,0.83750);\fill[PGold!22] (-0.25000,0.83750) rectangle (0.35000,0.87500);\fill[PGold!22] (-0.25000,0.87500) rectangle (0.38750,0.91250);\fill[PGold!22] (-0.25000,0.91250) rectangle (0.42500,0.95000);\fill[PGold!22] (-0.25000,0.95000) rectangle (0.46250,0.98750);\fill[PGold!22] (-0.25000,0.98750) rectangle (0.50000,1.02500);\fill[PGold!22] (-0.25000,1.02500) rectangle (0.53750,1.06250);\fill[PGold!22] (-0.25000,1.06250) rectangle (0.57500,1.10000);\fill[PGold!22] (-0.25000,1.10000) rectangle (0.61250,1.13750);\fill[PGold!22] (-0.25000,1.13750) rectangle (0.65000,1.17500);\fill[PGold!22] (-0.25000,1.17500) rectangle (0.68750,1.21250);\fill[PGold!22] (-0.25000,1.21250) rectangle (0.72500,1.25000);\draw[black!75,line width=.9pt] (-0.25000,0.27095) -- (-0.24583,0.27500) -- (-0.21250,0.30740) -- (-0.20726,0.31250) -- (-0.17500,0.34386) -- (-0.16868,0.35000) -- (-0.13750,0.38031) -- (-0.13010,0.38750) -- (-0.10000,0.41676) -- (-0.09152,0.42500) -- (-0.06250,0.45321) -- (-0.05295,0.46250) -- (-0.02500,0.48967) -- (-0.01437,0.50000) -- (0.01250,0.52612) -- (0.02421,0.53750) -- (0.05000,0.56257) -- (0.06279,0.57500) -- (0.08750,0.59902) -- (0.10136,0.61250) -- (0.12500,0.63548) -- (0.13994,0.65000) -- (0.16250,0.67193) -- (0.17852,0.68750) -- (0.20000,0.70838) -- (0.21710,0.72500) -- (0.23750,0.74483) -- (0.25567,0.76250) -- (0.27500,0.78129) -- (0.29425,0.80000) -- (0.31250,0.81774) -- (0.33283,0.83750) -- (0.35000,0.85419) -- (0.37141,0.87500) -- (0.38750,0.89064) -- (0.40999,0.91250) -- (0.42500,0.92710) -- (0.44856,0.95000) -- (0.46250,0.96355) -- (0.48714,0.98750) -- (0.50000,1.00000) -- (0.52572,1.02500) -- (0.53750,1.03645) -- (0.56430,1.06250) -- (0.57500,1.07290) -- (0.60287,1.10000) -- (0.61250,1.10936) -- (0.64145,1.13750) -- (0.65000,1.14581) -- (0.68003,1.17500) -- (0.68750,1.18226) -- (0.71861,1.21250) -- (0.72500,1.21871) -- (0.75718,1.25000);\draw[black!75,line width=.9pt] (1.25000,0.75000) -- (1.22500,0.72500) -- (1.21250,0.71250) -- (1.18750,0.68750) -- (1.17500,0.67500) -- (1.15000,0.65000) -- (1.13750,0.63750) -- (1.11250,0.61250) -- (1.10000,0.60000) -- (1.07500,0.57500) -- (1.06250,0.56250) -- (1.03750,0.53750) -- (1.02500,0.52500) -- (1.00000,0.50000) -- (0.98750,0.48750) -- (0.96250,0.46250) -- (0.95000,0.45000) -- (0.92500,0.42500) -- (0.91250,0.41250) -- (0.88750,0.38750) -- (0.87500,0.37500) -- (0.85000,0.35000) -- (0.83750,0.33750) -- (0.81250,0.31250) -- (0.80000,0.30000) -- (0.77500,0.27500) -- (0.76250,0.26250) -- (0.73750,0.23750) -- (0.72500,0.22500) -- (0.70000,0.20000) -- (0.68750,0.18750) -- (0.66250,0.16250) -- (0.65000,0.15000) -- (0.62500,0.12500) -- (0.61250,0.11250) -- (0.58750,0.08750) -- (0.57500,0.07500) -- (0.55000,0.05000) -- (0.53750,0.03750) -- (0.51250,0.01250) -- (0.50000,-0.00000) -- (0.47500,-0.02500) -- (0.46250,-0.03750) -- (0.43750,-0.06250) -- (0.42500,-0.07500) -- (0.40000,-0.10000) -- (0.38750,-0.11250) -- (0.36250,-0.13750) -- (0.35000,-0.15000) -- (0.32500,-0.17500) -- (0.31250,-0.18750) -- (0.28750,-0.21250) -- (0.27500,-0.22500) -- (0.25000,-0.25000);\fill[PBlue] (0,0) circle (2pt);\fill[PBlue] (1,1) circle (2pt);\fill[PGold] (-.025,.975) rectangle (.025,1.025);\fill[PGold] (.975,-.025) rectangle (1.025,.025);\node[below left] at (0,0) {0};\node[above right] at (1,1) {0};\node[above left] at (0,1) {1};\node[below right] at (1,0) {1};\draw[black!50] (-.25,-.25) rectangle (1.25,1.25);\node at (.5,1.38) {预测区域与训练点};\node at (.5,-.45) {$x_1$};\node[rotate=90] at (-.60,.5) {$x_2$};\foreach \t in {0,.5,1}{\draw (\t,-.25)--(\t,-.28) node[below]{\t};\draw (-.25,\t)--(-.28,\t) node[left]{\t};}\node[align=center] at (.5,-.70) {浅蓝：预测 0\quad 浅金：预测 1\\黑线：输出为 0.5 的等值线};\end{tikzpicture}\end{minipage}
+\caption{XOR 的训练损失与预测区域。损失纵轴采用对数刻度；右图黑线为网络输出等于 0.5 的边界。}\label{fig:xor}
+\end{figure}
+\textbf{结果与分析。}MSE 从训练前的 0.6723 降至约 $3.64\times10^{-13}$，四个输入均分类正确。ReLU 使网络能够表示分段线性函数，经多个隐藏单元组合形成非线性分类边界，从而区分 XOR 的两组对角顶点。若去掉隐藏层非线性，多层线性变换的复合仍是线性变换，无法解决这一问题。这里验证的是四个真值表输入的拟合能力；右图其他位置用于展示网络学到的函数形状，并不代表额外测试样本的正确标签。输出层为线性层，数值也不应解释为概率。
+
+\Needspace{26\baselineskip}
+\section{实验总结}
+本实验完成了 MLP 在 Fashion-MNIST 上的分类训练，并围绕课件要求逐项比较了结构、激活函数、损失函数和正则化方法，主要结论如下。
+\begin{enumerate}
+\item \textbf{结构影响表达能力，但参数更多不保证测试误差更低。}适度增宽改善了本次基础实验结果；增加深度或进一步扩大参数量，没有在相同 20 轮预算下持续带来收益。
+\item \textbf{激活函数和损失函数影响优化过程。}Sigmoid 前期学习较慢，但三种激活的最终误差接近；交叉熵与概率 MSE 均可用于训练，比较时应关注共同的分类误差，不能比较原始损失值大小。
+\item \textbf{训练损失下降不等于泛化持续改善。}大模型后期训练拟合增强，验证损失却恶化。分类误差与交叉熵反映不同性质，应结合观察，并使用独立验证集选择模型。
+\item \textbf{不同方法改变学习过程的方式不同。}本次 L2 系数较大时约束过强；Dropout 减弱训练拟合并缩小训练与测试的差距；BN 增强了训练拟合、改善了末轮测试表现，但并未消除泛化差距。
+\item \textbf{隐藏层非线性使网络能够解决线性不可分问题。}小型 ReLU 网络用 21 个参数完成 XOR 真值表的拟合，说明非线性变换的必要性。
+\end{enumerate}
+本次各配置仅运行一个随机种子，小幅差异可能来自训练随机性；后续可针对基线、Dropout 和 BN 等代表性配置增加多个种子，报告均值与标准差，并进一步在验证集上选择正则化强度。
+
+\section{实验代码架构简介}
+为支持上述控制变量实验，代码将参数配置、数据处理、模型、训练和评估分开。结构、激活、损失、L2、Dropout 与 BN 均由参数指定，使不同实验复用相同训练流程。
+\begin{table}[H]\centering\small
+\caption{实验代码的主要职责划分}
+\begin{tabular}{p{5.7cm}p{9.8cm}}\toprule
+文件 & 职责 \\\midrule
+\texttt{config.py}、\texttt{data.py} & 解析实验参数；加载数据并固定训练、验证划分。 \\
+\texttt{model.py}、\texttt{losses.py} & 构造不同隐藏层结构、激活、Dropout、BN 以及分类损失。 \\
+\texttt{engine.py}、\texttt{train.py} & 单轮训练、误差计算；组织训练并保存日志和检查点。 \\
+\texttt{run\_experiments.py} & 按预设配置顺序运行各组实验，减少手工修改和重复启动。 \\
+\texttt{evaluate.py}、\texttt{plot.py} & 评估已保存模型，整理误差和损失曲线。 \\
+\texttt{XOR.py} & 独立实现 XOR 网络及其训练。 \\
+\bottomrule\end{tabular}
+\end{table}
+每个实验单独保存配置与 CSV 指标，\texttt{last.pth} 用于恢复训练，\texttt{best.pth} 保存验证误差最低的模型。恢复时同时加载模型、优化器和随机状态，使中断后的训练可以继续；W\&B 使用离线模式记录同一组指标。以上组织方式主要服务于实验的可重复运行、结果比较和检查点复用。
+\end{document}

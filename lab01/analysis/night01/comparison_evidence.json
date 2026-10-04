@@ -1,0 +1,472 @@
+{
+  "prefix": "night01",
+  "train_samples": 50000,
+  "validation_samples": 10000,
+  "test_samples": 10000,
+  "seed": 42,
+  "split_seed": 42,
+  "selection": "Earliest minimum validation classification error within each indicated epoch budget; test data never selects checkpoints.",
+  "structure_budget": 20,
+  "activation_budget": 20,
+  "loss_budget": 20,
+  "regularization_budget": 60,
+  "limitations": [
+    "One random seed; no run-to-run uncertainty estimates.",
+    "Depth and parameter count are not independently isolated.",
+    "Error metrics use model.eval(); training losses are accumulated during parameter updates.",
+    "CE and MSE numerical loss scales cannot be compared directly.",
+    "L2 is explicit 0.5 * coefficient * sum of squared Linear weights, excluding biases and BN parameters."
+  ],
+  "results": [
+    {
+      "run": "night01_baseline",
+      "hidden_dims": "256-128",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 235146,
+      "epochs": 20,
+      "best_epoch": 19,
+      "best_train_error_pct": 5.7540000000000004,
+      "best_val_error_pct": 9.9,
+      "best_test_error_pct": 11.05,
+      "first20_best_epoch": 19,
+      "first20_best_val_error_pct": 9.9,
+      "first20_best_test_error_pct": 11.05,
+      "final_train_error_pct": 5.982,
+      "final_val_error_pct": 10.38,
+      "final_test_error_pct": 11.53,
+      "final_val_train_gap_pp": 4.398000000000001,
+      "min_val_loss_epoch": 13,
+      "min_val_loss": 0.2992864737033844,
+      "final_val_loss": 0.3518942913532257
+    },
+    {
+      "run": "night01_narrow",
+      "hidden_dims": "64-32",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 52650,
+      "epochs": 20,
+      "best_epoch": 16,
+      "best_train_error_pct": 8.526,
+      "best_val_error_pct": 10.620000000000001,
+      "best_test_error_pct": 12.0,
+      "first20_best_epoch": 16,
+      "first20_best_val_error_pct": 10.620000000000001,
+      "first20_best_test_error_pct": 12.0,
+      "final_train_error_pct": 8.309999999999999,
+      "final_val_error_pct": 10.9,
+      "final_test_error_pct": 12.85,
+      "final_val_train_gap_pp": 2.5900000000000007,
+      "min_val_loss_epoch": 16,
+      "min_val_loss": 0.30489500517845153,
+      "final_val_loss": 0.3221866986274719
+    },
+    {
+      "run": "night01_wide",
+      "hidden_dims": "512-256",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 535818,
+      "epochs": 20,
+      "best_epoch": 20,
+      "best_train_error_pct": 5.058,
+      "best_val_error_pct": 9.48,
+      "best_test_error_pct": 10.73,
+      "first20_best_epoch": 20,
+      "first20_best_val_error_pct": 9.48,
+      "first20_best_test_error_pct": 10.73,
+      "final_train_error_pct": 5.058,
+      "final_val_error_pct": 9.48,
+      "final_test_error_pct": 10.73,
+      "final_val_train_gap_pp": 4.422,
+      "min_val_loss_epoch": 8,
+      "min_val_loss": 0.2932677204608917,
+      "final_val_loss": 0.32539528505802157
+    },
+    {
+      "run": "night01_deep",
+      "hidden_dims": "256-128-64",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 242762,
+      "epochs": 20,
+      "best_epoch": 13,
+      "best_train_error_pct": 7.202,
+      "best_val_error_pct": 9.76,
+      "best_test_error_pct": 11.360000000000001,
+      "first20_best_epoch": 13,
+      "first20_best_val_error_pct": 9.76,
+      "first20_best_test_error_pct": 11.360000000000001,
+      "final_train_error_pct": 6.178,
+      "final_val_error_pct": 10.14,
+      "final_test_error_pct": 11.219999999999999,
+      "final_val_train_gap_pp": 3.962,
+      "min_val_loss_epoch": 13,
+      "min_val_loss": 0.29868220076560975,
+      "final_val_loss": 0.3355994181632996
+    },
+    {
+      "run": "night01_tanh",
+      "hidden_dims": "256-128",
+      "activation": "tanh",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 235146,
+      "epochs": 20,
+      "best_epoch": 19,
+      "best_train_error_pct": 5.978,
+      "best_val_error_pct": 9.98,
+      "best_test_error_pct": 11.41,
+      "first20_best_epoch": 19,
+      "first20_best_val_error_pct": 9.98,
+      "first20_best_test_error_pct": 11.41,
+      "final_train_error_pct": 6.492000000000001,
+      "final_val_error_pct": 11.1,
+      "final_test_error_pct": 12.0,
+      "final_val_train_gap_pp": 4.608,
+      "min_val_loss_epoch": 16,
+      "min_val_loss": 0.29179716930389404,
+      "final_val_loss": 0.321793780708313
+    },
+    {
+      "run": "night01_sigmoid",
+      "hidden_dims": "256-128",
+      "activation": "sigmoid",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 235146,
+      "epochs": 20,
+      "best_epoch": 16,
+      "best_train_error_pct": 6.986000000000001,
+      "best_val_error_pct": 10.040000000000001,
+      "best_test_error_pct": 11.19,
+      "first20_best_epoch": 16,
+      "first20_best_val_error_pct": 10.040000000000001,
+      "first20_best_test_error_pct": 11.19,
+      "final_train_error_pct": 6.252000000000001,
+      "final_val_error_pct": 10.09,
+      "final_test_error_pct": 11.379999999999999,
+      "final_val_train_gap_pp": 3.8379999999999996,
+      "min_val_loss_epoch": 16,
+      "min_val_loss": 0.28754647102355957,
+      "final_val_loss": 0.295938623380661
+    },
+    {
+      "run": "night01_mse",
+      "hidden_dims": "256-128",
+      "activation": "relu",
+      "loss": "mse",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 235146,
+      "epochs": 20,
+      "best_epoch": 18,
+      "best_train_error_pct": 6.714,
+      "best_val_error_pct": 9.76,
+      "best_test_error_pct": 11.25,
+      "first20_best_epoch": 18,
+      "first20_best_val_error_pct": 9.76,
+      "first20_best_test_error_pct": 11.25,
+      "final_train_error_pct": 6.644,
+      "final_val_error_pct": 10.299999999999999,
+      "final_test_error_pct": 11.49,
+      "final_val_train_gap_pp": 3.6559999999999997,
+      "min_val_loss_epoch": 18,
+      "min_val_loss": 0.014658222922682762,
+      "final_val_loss": 0.01550797502398491
+    },
+    {
+      "run": "night01_large_plain",
+      "hidden_dims": "1024-1024-512",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 2383370,
+      "epochs": 60,
+      "best_epoch": 56,
+      "best_train_error_pct": 1.7919999999999998,
+      "best_val_error_pct": 9.42,
+      "best_test_error_pct": 9.94,
+      "first20_best_epoch": 16,
+      "first20_best_val_error_pct": 10.059999999999999,
+      "first20_best_test_error_pct": 11.03,
+      "final_train_error_pct": 1.7239999999999998,
+      "final_val_error_pct": 9.85,
+      "final_test_error_pct": 10.65,
+      "final_val_train_gap_pp": 8.126,
+      "min_val_loss_epoch": 8,
+      "min_val_loss": 0.29282315783500673,
+      "final_val_loss": 0.7380402262687683
+    },
+    {
+      "run": "night01_large_l2_1e-4",
+      "hidden_dims": "1024-1024-512",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0001,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 2383370,
+      "epochs": 60,
+      "best_epoch": 21,
+      "best_train_error_pct": 6.419999999999999,
+      "best_val_error_pct": 9.719999999999999,
+      "best_test_error_pct": 11.16,
+      "first20_best_epoch": 18,
+      "first20_best_val_error_pct": 10.18,
+      "first20_best_test_error_pct": 11.03,
+      "final_train_error_pct": 3.882,
+      "final_val_error_pct": 10.16,
+      "final_test_error_pct": 10.870000000000001,
+      "final_val_train_gap_pp": 6.2780000000000005,
+      "min_val_loss_epoch": 18,
+      "min_val_loss": 0.29648477988243105,
+      "final_val_loss": 0.39058581428527833
+    },
+    {
+      "run": "night01_large_l2_1e-3",
+      "hidden_dims": "1024-1024-512",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.001,
+      "dropout": 0.0,
+      "batch_norm": false,
+      "num_params": 2383370,
+      "epochs": 60,
+      "best_epoch": 57,
+      "best_train_error_pct": 8.341999999999999,
+      "best_val_error_pct": 10.38,
+      "best_test_error_pct": 12.01,
+      "first20_best_epoch": 16,
+      "first20_best_val_error_pct": 11.18,
+      "first20_best_test_error_pct": 12.620000000000001,
+      "final_train_error_pct": 9.214,
+      "final_val_error_pct": 11.28,
+      "final_test_error_pct": 12.78,
+      "final_val_train_gap_pp": 2.066,
+      "min_val_loss_epoch": 58,
+      "min_val_loss": 0.29129503917694094,
+      "final_val_loss": 0.3133081863880158
+    },
+    {
+      "run": "night01_large_dropout",
+      "hidden_dims": "1024-1024-512",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.2,
+      "batch_norm": false,
+      "num_params": 2383370,
+      "epochs": 60,
+      "best_epoch": 51,
+      "best_train_error_pct": 4.46,
+      "best_val_error_pct": 9.09,
+      "best_test_error_pct": 9.879999999999999,
+      "first20_best_epoch": 19,
+      "first20_best_val_error_pct": 9.98,
+      "first20_best_test_error_pct": 11.03,
+      "final_train_error_pct": 4.292,
+      "final_val_error_pct": 9.24,
+      "final_test_error_pct": 10.11,
+      "final_val_train_gap_pp": 4.9479999999999995,
+      "min_val_loss_epoch": 14,
+      "min_val_loss": 0.3050781644821167,
+      "final_val_loss": 0.4491741095066071
+    },
+    {
+      "run": "night01_large_bn",
+      "hidden_dims": "1024-1024-512",
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": true,
+      "num_params": 2388490,
+      "epochs": 60,
+      "best_epoch": 52,
+      "best_train_error_pct": 0.9860000000000001,
+      "best_val_error_pct": 8.98,
+      "best_test_error_pct": 10.03,
+      "first20_best_epoch": 20,
+      "first20_best_val_error_pct": 9.379999999999999,
+      "first20_best_test_error_pct": 10.85,
+      "final_train_error_pct": 0.642,
+      "final_val_error_pct": 9.11,
+      "final_test_error_pct": 10.100000000000001,
+      "final_val_train_gap_pp": 8.468,
+      "min_val_loss_epoch": 7,
+      "min_val_loss": 0.28343172903060915,
+      "final_val_loss": 0.5522351137638092
+    }
+  ],
+  "sources": [
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\_batch\\night01\\plan.json",
+      "sha256": "a779c93260d162a4bf6ef717878541e7dfa8f55ac7efa9bfb430cbe028e166f8"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_baseline\\test_summary.json",
+      "sha256": "bc663ddc0584f1675031676b6120b86c68729b733a45b0d1e6c04bbc89255f95"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_baseline\\history.csv",
+      "sha256": "0b665da012804c53b3142a1a4632c59a73c4011fb4a13bcbe8ec67dc3fb408a7"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_baseline\\test_history.csv",
+      "sha256": "63a601ee3620ec938630920395ec474b3fa30bd758bde813ae772f46ce3d3af7"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_narrow\\test_summary.json",
+      "sha256": "a04c341f9c9503bdb16dc4178d3d0ab653a42205bef6302533e0a5ec1a0dd16e"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_narrow\\history.csv",
+      "sha256": "958aaa8a960fd1de062ea12757efed3abc478ec6d07f7a0cb66e44341b3b62d2"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_narrow\\test_history.csv",
+      "sha256": "735863a31ffb967987f5e1c8c8ad6217c02c06b4da7194b99464f7a2e804e77d"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_wide\\test_summary.json",
+      "sha256": "386305376c12735d9acd22c065fdc008fffd9169d2246958f3fc49351496e220"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_wide\\history.csv",
+      "sha256": "04ea3526f9ef3746a8d77afa000a698ccbbc4dd12fc3545049da4c89610b4d8a"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_wide\\test_history.csv",
+      "sha256": "b5d7f4c9f5ee861725ece451e80bcdfb67d58730ef1a0da3b808b9198dd54fc0"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_deep\\test_summary.json",
+      "sha256": "12b1bbce278a47a10fd5ae74c44982373d373dbbf5a0c97436bb37bf816ac0af"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_deep\\history.csv",
+      "sha256": "4e0aa22aba7100b1ed82f376925eb55a9325a60b1fd9fcdeb319b9148edde1dd"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_deep\\test_history.csv",
+      "sha256": "e8e5c2f1f4d4ab2a98df68a2bedcc9d8b5f7bf1b73b2abe6d1e4f852d67b350b"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_tanh\\test_summary.json",
+      "sha256": "a1a961197f395fe529aad164fcefa4017dfbb6110408e7fe5b6ae9c09fe2769d"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_tanh\\history.csv",
+      "sha256": "a6ea9a73f00f4eebfbe633dda70a46e32df0465f7e1c81c6c543d54656f1a58c"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_tanh\\test_history.csv",
+      "sha256": "6f64085b0d83858be2da7e570ae7cb03f3108c482122e26170c6809581b70ed1"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_sigmoid\\test_summary.json",
+      "sha256": "9fe71c60aeb9d003d4488329f27797b9f8f69343f8578257b30d0b390fedca95"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_sigmoid\\history.csv",
+      "sha256": "f6159b1ccb2f6cd9ee19c9f96615fccf6691695e29b979dff745415087b39f65"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_sigmoid\\test_history.csv",
+      "sha256": "267f8792431717bc226606dc9b01ded92be8a2d9e39efe8d430fb034839f5ffb"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_mse\\test_summary.json",
+      "sha256": "55b9e0b543235cf12b299529734ebd7b715c3b5104364b79b0379acf4daee51d"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_mse\\history.csv",
+      "sha256": "3f2744aff5820b09106b5b6c63223cf49fb8edd1cd4d4e769f8a09d4c1c5c230"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_mse\\test_history.csv",
+      "sha256": "499dedabd80e815090070bde1e9f74a6b91883d927273c353de19697680e1d56"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_plain\\test_summary.json",
+      "sha256": "e9241da7c2b69418d2701377d62765a1691bb35bbbd3cc0a619004919bbc5570"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_plain\\history.csv",
+      "sha256": "76dd7d25394ce38f44aa3ba53c60e25cfa1b13667c4ce8fb5fb3bcd525388600"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_plain\\test_history.csv",
+      "sha256": "2ca4cd68191b317dadca848abe9a1ccd9aa0414900fbe9be40af68220d8c53e1"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_l2_1e-4\\test_summary.json",
+      "sha256": "71bbe85c143c349da0d7021abb43174dacb1306e7f42994d6ae2e21ddef5b3bb"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_l2_1e-4\\history.csv",
+      "sha256": "c0444a5595d78a76d6122d0ce132b9345f282005150be9de37d72c92eeffbfdd"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_l2_1e-4\\test_history.csv",
+      "sha256": "a696319ad5f08e1c5ebb8809fd2c804bbffb8cf44205e93f0052ae5dfea5bb4e"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_l2_1e-3\\test_summary.json",
+      "sha256": "1611d8f054471435dd26b71866d99c6c5b838d64cc4487c07aa608916901d747"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_l2_1e-3\\history.csv",
+      "sha256": "85bf4d7793ba8d80a13f5275105408fa1e8d85e0d580176fa6ae7c7b54db6eb3"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_l2_1e-3\\test_history.csv",
+      "sha256": "64c49d0c86903ad07b4b6a76257e9ea26a5adf0045a678a9622144cdd34b8fed"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_dropout\\test_summary.json",
+      "sha256": "cb8b4d8bf0f8d940e2b32dbf47da49395cdf477862018da2ef8989d058a85efb"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_dropout\\history.csv",
+      "sha256": "fe9e8fdde04553a3b6f441e1e9890ecec834f358580d7169316dd1ce7bf68ed1"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_dropout\\test_history.csv",
+      "sha256": "d837cd8f057b530bd5594e57aada5a326dfe9020d2d8811ae8e6e729487ff329"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_bn\\test_summary.json",
+      "sha256": "a0c07f26a003fd9aea0ef0203bd9369c310381fb1a2a730e581c97370306bd37"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_bn\\history.csv",
+      "sha256": "33cb5ac0b7a8b1397f086bee33a214fa043b288229444c9bb6bdeb6abbc695da"
+    },
+    {
+      "path": "D:\\CodingLife\\deep_learning\\lab01\\results\\night01_large_bn\\test_history.csv",
+      "sha256": "5fd87ce0dc5bbc30b7921b4513da16c74e984a9a0574e432d64320cb5a6d32ab"
+    }
+  ]
+}

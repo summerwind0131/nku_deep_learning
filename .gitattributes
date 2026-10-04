@@ -1,0 +1,23 @@
+# Keep source diffs consistent between Windows and other platforms.
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.tex text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+*.ps1 text eol=crlf
+
+# Generated visual artifacts are stored as binary files.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+
+# Archived experiment summaries contain SHA256 hashes of raw CSV files.
+# Preserve those bytes so validation also works after cloning on another OS.
+/lab01/results/** -text

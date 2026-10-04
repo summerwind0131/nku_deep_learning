@@ -1,0 +1,22 @@
+epoch=0, loss=0.672251
+epoch=500, loss=0.000000
+epoch=1000, loss=0.000000
+epoch=1500, loss=0.000000
+epoch=2000, loss=0.000000
+epoch=2500, loss=0.000000
+epoch=3000, loss=0.000000
+epoch=3500, loss=0.000000
+epoch=4000, loss=0.000000
+epoch=4500, loss=0.000000
+
+预测值：
+tensor([[5.1673e-07],
+        [1.0000e+00],
+        [1.0000e+00],
+        [6.7002e-07]])
+
+二值化结果：
+tensor([[0],
+        [1],
+        [1],
+        [0]], dtype=torch.int32)

@@ -1,0 +1,188 @@
+[
+  {
+    "label": "baseline",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        256,
+        128
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "narrow",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        64,
+        32
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "wide",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        512,
+        256
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "deep",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        256,
+        128,
+        64
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "tanh",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        256,
+        128
+      ],
+      "activation": "tanh",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "sigmoid",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        256,
+        128
+      ],
+      "activation": "sigmoid",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "mse",
+    "epochs": 20,
+    "config": {
+      "hidden_dims": [
+        256,
+        128
+      ],
+      "activation": "relu",
+      "loss": "mse",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "large_plain",
+    "epochs": 60,
+    "config": {
+      "hidden_dims": [
+        1024,
+        1024,
+        512
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "large_l2_1e-4",
+    "epochs": 60,
+    "config": {
+      "hidden_dims": [
+        1024,
+        1024,
+        512
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0001,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "large_l2_1e-3",
+    "epochs": 60,
+    "config": {
+      "hidden_dims": [
+        1024,
+        1024,
+        512
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.001,
+      "dropout": 0.0,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "large_dropout",
+    "epochs": 60,
+    "config": {
+      "hidden_dims": [
+        1024,
+        1024,
+        512
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.2,
+      "batch_norm": false
+    }
+  },
+  {
+    "label": "large_bn",
+    "epochs": 60,
+    "config": {
+      "hidden_dims": [
+        1024,
+        1024,
+        512
+      ],
+      "activation": "relu",
+      "loss": "cross_entropy",
+      "l2": 0.0,
+      "dropout": 0.0,
+      "batch_norm": true
+    }
+  }
+]

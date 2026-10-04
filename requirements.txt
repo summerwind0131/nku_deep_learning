@@ -1,0 +1,4 @@
+-r lab01/requirements.txt
+
+# PDF inspection used while preparing the report.
+pypdf==6.14.2
